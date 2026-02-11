@@ -1,13 +1,50 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect, useCallback, useRef } from "react";
+import HeroSection from "@/components/HeroSection";
+import OmniBar from "@/components/OmniBar";
+import BentoGrid from "@/components/BentoGrid";
+import TrustProtocol from "@/components/TrustProtocol";
+import AIChat from "@/components/AIChat";
+import Footer from "@/components/Footer";
 
 const Index = () => {
+  const [omniBarOpen, setOmniBarOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const servicesRef = useRef<HTMLElement>(null);
+
+  const openOmniBar = useCallback(() => setOmniBarOpen(true), []);
+  const closeOmniBar = useCallback(() => setOmniBarOpen(false), []);
+  const toggleChat = useCallback(() => setChatOpen((prev) => !prev), []);
+  const openChat = useCallback(() => setChatOpen(true), []);
+  const scrollToServices = useCallback(() => {
+    servicesRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOmniBarOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <main className="min-h-screen bg-background">
+      <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={openChat} />
+      <BentoGrid ref={servicesRef} />
+      <TrustProtocol />
+      <Footer />
+
+      <OmniBar
+        open={omniBarOpen}
+        onClose={closeOmniBar}
+        onOpenChat={openChat}
+        onScrollToServices={scrollToServices}
+      />
+      <AIChat open={chatOpen} onToggle={toggleChat} />
+    </main>
   );
 };
 
