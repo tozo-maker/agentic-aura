@@ -1,17 +1,32 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
+import { useWizard } from "./wizard/WizardProvider";
+import WizardCard from "./wizard/WizardCard";
+import VoiceToggle from "./VoiceToggle";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; hidden?: boolean };
 
 interface AIChatProps {
   open: boolean;
   onToggle: () => void;
+  initialIntent?: string | null;
+  wizardId?: string | null;
 }
 
-const AIChat = ({ open, onToggle }: AIChatProps) => {
+/** Parse [FIELD_UPDATE:key=value] markers from streamed text */
+function parseFieldUpdates(text: string): { clean: string; updates: Record<string, string> } {
+  const updates: Record<string, string> = {};
+  const clean = text.replace(/\[FIELD_UPDATE:(\w+)=([^\]]+)\]/g, (_, k, v) => {
+    updates[k] = v;
+    return "";
+  });
+  return { clean: clean.trim(), updates };
+}
+
+const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -23,34 +38,59 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasStartedWizard = useRef(false);
+
+  const wizard = useWizard();
+
+  // Start wizard when wizardId prop changes
+  useEffect(() => {
+    if (wizardId && !hasStartedWizard.current) {
+      hasStartedWizard.current = true;
+      wizard.startWizard(wizardId);
+      if (initialIntent) {
+        sendMessage(`I'd like help with: ${initialIntent}`, true);
+      }
+    }
+  }, [wizardId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, wizard.stepIndex, wizard.data]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || isLoading) return;
+  const sendMessage = useCallback(async (text: string, hidden = false) => {
+    if (!text.trim() || isLoading) return;
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: text.trim(), hidden };
     setInput("");
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
+    // Build wizard context for the edge function
+    const wizardContext = wizard.schema
+      ? {
+          wizardId: wizard.schema.id,
+          currentStep: wizard.schema.steps[wizard.stepIndex],
+          stepIndex: wizard.stepIndex,
+          totalSteps: wizard.schema.steps.length,
+          collectedData: wizard.data,
+          allFields: wizard.schema.steps.flatMap((s) => s.fields.map((f) => f.id)),
+        }
+      : undefined;
+
     try {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+      const allMessages = [...messages, userMsg].filter((m) => !m.hidden || m === userMsg).map(({ role, content }) => ({ role, content }));
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMsg], sessionId }),
+        body: JSON.stringify({ messages: allMessages, sessionId, wizardContext }),
       });
 
-      if (!resp.ok || !resp.body) {
-        throw new Error("Stream failed");
-      }
+      if (!resp.ok || !resp.body) throw new Error("Stream failed");
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -73,17 +113,19 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
           if (!line.startsWith("data: ")) continue;
 
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") {
-            streamDone = true;
-            break;
-          }
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
 
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
-              const snapshot = assistantSoFar;
+              const { clean, updates } = parseFieldUpdates(assistantSoFar);
+
+              // Auto-fill wizard fields from AI
+              Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
+
+              const snapshot = clean;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant" && prev.length > 1) {
@@ -106,11 +148,30 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
     } finally {
       setIsLoading(false);
     }
+  }, [messages, isLoading, sessionId, wizard]);
+
+  const send = () => sendMessage(input);
+
+  const handleWizardStepSubmit = (stepData: Record<string, string>) => {
+    const summary = Object.entries(stepData).map(([k, v]) => `${k}: ${v}`).join(", ");
+    if (summary) {
+      sendMessage(`[WIZARD_UPDATE] ${summary}`, true);
+    }
   };
+
+  const handleWizardComplete = async () => {
+    await wizard.completeWizard(sessionId);
+    sendMessage("[WIZARD_COMPLETE] All information has been collected. Please provide a summary of what was gathered and suggest next steps.", true);
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    sendMessage(text);
+  };
+
+  const visibleMessages = messages.filter((m) => !m.hidden);
 
   return (
     <>
-      {/* Floating trigger */}
       <AnimatePresence>
         {!open && (
           <motion.button
@@ -127,7 +188,6 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
         )}
       </AnimatePresence>
 
-      {/* Chat panel */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -148,9 +208,9 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
               </button>
             </div>
 
-            {/* Messages */}
+            {/* Messages + Wizard */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((msg, i) => (
+              {visibleMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
@@ -163,13 +223,17 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
                       <div className="prose prose-sm max-w-none">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
-                    ) : (
-                      msg.content
-                    )}
+                    ) : msg.content}
                   </div>
                 </div>
               ))}
-              {isLoading && messages[messages.length - 1]?.role === "user" && (
+
+              {/* Inline Wizard Card */}
+              {wizard.schema && !wizard.completed && (
+                <WizardCard onStepSubmit={handleWizardStepSubmit} onComplete={handleWizardComplete} />
+              )}
+
+              {isLoading && visibleMessages[visibleMessages.length - 1]?.role === "user" && (
                 <div className="flex justify-start">
                   <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3 flex gap-1">
                     <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -188,9 +252,10 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
               </button>
             </div>
 
-            {/* Input */}
+            {/* Input + Voice */}
             <div className="px-4 pb-4">
               <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">
+                <VoiceToggle onTranscript={handleVoiceTranscript} disabled={isLoading} />
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -199,13 +264,7 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
                   className="flex-1 bg-transparent text-sm font-sans outline-none text-foreground placeholder:text-muted-foreground"
                   disabled={isLoading}
                 />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 rounded-lg"
-                  onClick={send}
-                  disabled={isLoading || !input.trim()}
-                >
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg" onClick={send} disabled={isLoading || !input.trim()}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>

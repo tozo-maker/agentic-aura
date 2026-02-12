@@ -5,15 +5,15 @@ import { Search, ArrowRight, Sparkles, ShoppingCart, Cog, Server } from "lucide-
 interface OmniBarProps {
   open: boolean;
   onClose: () => void;
-  onOpenChat: () => void;
+  onOpenChat: (intent?: string, wizardId?: string) => void;
   onScrollToServices: () => void;
 }
 
 const intents = [
-  { icon: Sparkles, label: "Cut support costs by 50%", category: "AI Support" },
-  { icon: Cog, label: "Automate procurement workflows", category: "Automation" },
-  { icon: ShoppingCart, label: "Build a headless storefront", category: "Commerce" },
-  { icon: Server, label: "Self-healing infrastructure setup", category: "Infrastructure" },
+  { icon: Sparkles, label: "Cut support costs by 50%", category: "AI Support", wizardId: "support_assessment" },
+  { icon: Cog, label: "Automate procurement workflows", category: "Automation", wizardId: "automation_scoping" },
+  { icon: ShoppingCart, label: "Build a headless storefront", category: "Commerce", wizardId: "commerce_wizard" },
+  { icon: Server, label: "Self-healing infrastructure setup", category: "Infrastructure", wizardId: "infrastructure_wizard" },
 ];
 
 const OmniBar = ({ open, onClose, onOpenChat, onScrollToServices }: OmniBarProps) => {
@@ -24,9 +24,9 @@ const OmniBar = ({ open, onClose, onOpenChat, onScrollToServices }: OmniBarProps
   );
 
   const handleSelect = useCallback(
-    (label: string) => {
+    (label: string, wizardId: string) => {
       onClose();
-      onOpenChat();
+      onOpenChat(label, wizardId);
     },
     [onClose, onOpenChat]
   );
@@ -72,7 +72,7 @@ const OmniBar = ({ open, onClose, onOpenChat, onScrollToServices }: OmniBarProps
                   className="flex-1 bg-transparent text-base font-sans text-foreground placeholder:text-muted-foreground outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && filtered.length > 0) {
-                      handleSelect(filtered[0].label);
+                      handleSelect(filtered[0].label, filtered[0].wizardId);
                     }
                   }}
                 />
@@ -86,7 +86,7 @@ const OmniBar = ({ open, onClose, onOpenChat, onScrollToServices }: OmniBarProps
                 {filtered.map((intent) => (
                   <button
                     key={intent.label}
-                    onClick={() => handleSelect(intent.label)}
+                    onClick={() => handleSelect(intent.label, intent.wizardId)}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left hover:bg-secondary/60 transition-colors group"
                   >
                     <intent.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -101,7 +101,7 @@ const OmniBar = ({ open, onClose, onOpenChat, onScrollToServices }: OmniBarProps
                   <button
                     onClick={() => {
                       onClose();
-                      onOpenChat();
+                      onOpenChat(query);
                     }}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left hover:bg-secondary/60 transition-colors"
                   >
