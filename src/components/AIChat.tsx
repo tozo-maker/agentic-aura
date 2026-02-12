@@ -12,6 +12,7 @@ interface AIChatProps {
 }
 
 const AIChat = ({ open, onToggle }: AIChatProps) => {
+  const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
@@ -36,7 +37,6 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    // Placeholder: will connect to edge function once Cloud is enabled
     try {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
       const resp = await fetch(CHAT_URL, {
@@ -45,7 +45,7 @@ const AIChat = ({ open, onToggle }: AIChatProps) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        body: JSON.stringify({ messages: [...messages, userMsg], sessionId }),
       });
 
       if (!resp.ok || !resp.body) {
