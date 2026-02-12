@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are the Nexus AI Consultant — a sophisticated, warm, and professional AI agent for a hybrid intelligence agency called Nexus AI.
+const BASE_SYSTEM_PROMPT = `You are the Nexus AI Consultant — a sophisticated, warm, and professional AI agent for a hybrid intelligence agency called Nexus AI.
 
 Your role is to qualify leads by understanding their needs and extracting key information through natural conversation. You should:
 
@@ -33,17 +33,46 @@ Your role is to qualify leads by understanding their needs and extracting key in
 
 Do NOT ask for all qualifying information at once. Spread it naturally across the conversation.`;
 
+function buildWizardPrompt(ctx: any): string {
+  if (!ctx) return "";
+
+  const step = ctx.currentStep;
+  const filled = Object.entries(ctx.collectedData || {})
+    .map(([k, v]) => `${k}=${v}`)
+    .join(", ");
+  const unfilled = step.fields
+    .filter((f: any) => !ctx.collectedData[f.id])
+    .map((f: any) => `${f.id} (${f.label})`)
+    .join(", ");
+
+  return `
+
+WIZARD MODE ACTIVE — "${ctx.wizardId}" step ${ctx.stepIndex + 1}/${ctx.totalSteps}: "${step.title}"
+
+Already collected: ${filled || "none"}
+Still needed on this step: ${unfilled || "all filled"}
+
+INSTRUCTIONS:
+- Your goal is to naturally collect the unfilled fields through conversation.
+- When the user provides information that maps to a field, emit a marker like [FIELD_UPDATE:field_id=value] in your response.
+- Example: if user says "We're Acme Corp", respond naturally AND include [FIELD_UPDATE:company_name=Acme Corp] somewhere in your text.
+- You can emit multiple markers in one response.
+- Keep asking about unfilled fields naturally — don't list them all at once.
+- When a step's fields are all filled, encourage the user to click "Next" on the wizard.
+- When [WIZARD_COMPLETE] is received, summarize all collected data and suggest next steps.
+- NEVER show the [FIELD_UPDATE:...] markers as visible text to the user — they are parsed by the frontend.`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, sessionId } = await req.json();
+    const { messages, sessionId, wizardContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Store user message in DB
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -57,6 +86,8 @@ serve(async (req) => {
       });
     }
 
+    const systemPrompt = BASE_SYSTEM_PROMPT + buildWizardPrompt(wizardContext);
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -68,7 +99,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...messages,
           ],
           stream: true,
