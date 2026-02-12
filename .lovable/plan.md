@@ -1,73 +1,172 @@
 
 
-# Agentic Web Agency Storefront — Phase 1 (MVO)
+# Dynamic Wizard + Voice Agent System
 
-## Brand & Design System
-- **Working name**: "Nexus AI" (placeholder — refined during build)
-- **Aesthetic**: Neo-Minimalist "Liquid Glass" — warm bone background (#FDFBF7) with SVG noise texture, glassmorphic cards (`backdrop-blur-xl`, `bg-white/40`), serif + sans typography pairing
-- **Motion**: Spring-based animations via Framer Motion for hover states, section reveals, and the Omni-Bar
-- **Dark mode**: Not in Phase 1 — focus on the warm, premium light aesthetic
+## Overview
 
-## Page Structure (Single Page App)
+Transform the current text-only chat into a **synchronized wizard + AI agent** experience. When a user selects a quick action (or the AI determines it needs structured data), a dynamic form wizard appears **inside the chat panel**, and the AI agent drives the conversation through it. Users can either fill fields manually or switch to **voice mode** where the agent interviews them and auto-fills the wizard in real-time.
 
-### 1. Hero Section
-- Large editorial serif headline communicating the "Hybrid Automation" value prop
-- Subtle animated gradient or refractive glass effect
-- Floating Omni-Bar trigger button (+ Cmd+K shortcut)
-- Clear CTA: "Talk to Our Agent" or "Scope Your Project"
+## How It Works
 
-### 2. Omni-Bar (Command Center)
-- Modal overlay triggered by Cmd+K or floating button
-- Natural language search input with smart suggestions
-- Predefined intents: "Cut support costs", "Automate procurement", "Build headless store"
-- Deep-links to relevant service cards and triggers "Schedule Audit" or opens the AI chat
+```text
++------------------------------------------+
+|  Nexus AI Consultant           [mic] [X] |
+|------------------------------------------|
+|  [Chat messages area]                    |
+|                                          |
+|  +------------------------------------+  |
+|  | WIZARD CARD (inline in chat)       |  |
+|  | Step 2 of 4: Your Project          |  |
+|  |                                    |  |
+|  | Company name:  [Auto Corp_____]    |  |
+|  | Industry:      [Manufacturing  v]  |  |
+|  | Team size:     (o)1-10 ( )11-50    |  |
+|  |                                    |  |
+|  | [Back]              [Next ->]      |  |
+|  +------------------------------------+  |
+|                                          |
+|  Agent: "Great, Auto Corp! What's your  |
+|  main pain point — manual processes or   |
+|  customer support volume?"               |
+|------------------------------------------|
+|  [Voice active: listening...]    [Send]  |
++------------------------------------------+
+```
 
-### 3. Bento Grid — Service Catalog (4-6 cards)
-- **Agentic Commerce** — Headless Medusa v2 storefronts
-- **Workflow Automation** — n8n-powered business process automation
-- **Generative UI** — AI-adaptive interfaces that change based on user data
-- **Self-Healing Infrastructure** — Dockerized sovereign hosting with uptime monitoring
-- **AI Customer Support** — Intelligent support agents with human escalation
-- **Data Intelligence** — Automated reporting and business insights
-- Each card: glassmorphic style, icon, short description, hover animation
+## Architecture
 
-### 4. Trust Protocol Section
-- Interactive toggle: "AI Mode (Fast)" vs "HITL Mode (Verified)"
-- Visual flowchart showing how human verification gates work
-- Badges: "Human Verified", "Zero Retention", "WCAG 2.2 AA"
-- Purpose: alleviate AI anxiety for enterprise buyers
+### 1. Wizard Schema System (Frontend)
 
-### 5. Live AI Consultant (Chat)
-- Slide-up chat panel (or full-screen conversational view)
-- Powered by Lovable AI (Gemini Flash) via Supabase edge function
-- Qualifies leads: asks about use case, budget range, timeline
-- Classifies intent (Commerce vs. Automation vs. Infrastructure)
-- Stores conversations and extracted lead data in Supabase
-- Fallback: "Schedule a human call" option always visible
+Create a `WizardSchema` type that defines dynamic, multi-step forms:
 
-### 6. Footer
-- Minimal: links to privacy policy placeholder, "Built with hybrid intelligence" tagline
+```text
+WizardSchema {
+  id: string              // e.g. "lead_qualification"
+  steps: WizardStep[]
+  onComplete: (data) => void
+}
 
-## Backend (Lovable Cloud + Supabase)
+WizardStep {
+  id: string              // e.g. "intent"
+  title: string
+  fields: WizardField[]
+}
 
-### Database Tables
-- **leads** — name, email, company, intent category, budget range, timeline, status
-- **chat_messages** — conversation history linked to leads/sessions
+WizardField {
+  id: string              // e.g. "company_name"
+  type: "text" | "select" | "radio" | "textarea" | "email" | "range"
+  label: string
+  options?: { label, value }[]
+  required?: boolean
+  placeholder?: string
+}
+```
 
-### Edge Functions
-- **chat** — Streams AI responses via Lovable AI Gateway (Gemini Flash), includes system prompt for lead qualification
-- Lead extraction: AI extracts structured lead info from conversation and saves to DB
+Pre-built wizard templates mapped to each quick action:
+- **"Cut support costs"** -> Support Assessment wizard (pain points, volume, current tools, budget)
+- **"Automate procurement"** -> Automation Scoping wizard (process description, frequency, team size, timeline)
+- **"Build headless storefront"** -> Commerce wizard (current platform, SKU count, integrations, budget)
+- **"Self-healing infrastructure"** -> Infrastructure wizard (current hosting, traffic, uptime needs, budget)
 
-## Accessibility & Performance
-- Omni-Bar fully keyboard navigable (Cmd+K, arrow keys, Escape)
-- Semantic HTML, ARIA labels, focus management
-- Optimized for Core Web Vitals (LCP < 2.5s target)
-- WCAG 2.2 AA color contrast on the bone/glass palette
+### 2. New Components
 
-## What's NOT in Phase 1
-- n8n webhook integration (Phase 2)
-- Calendar scheduling API (Phase 2)
-- Medusa v2 storefront demo (Phase 2)
-- Client portal / dashboard (Phase 3)
-- Dark mode
+**`WizardCard.tsx`** — Renders a single wizard step inline within the chat message area
+- Glassmorphic card matching existing design system
+- Progress indicator (step X of Y)
+- Field renderers for each field type (text, select, radio, etc.)
+- Back/Next navigation
+- Animated transitions between steps via Framer Motion
+
+**`VoiceToggle.tsx`** — Mic button in the chat input bar
+- Uses browser `SpeechRecognition` API (Web Speech API) for voice-to-text
+- When active, transcribed text is sent as regular chat messages
+- Visual indicator: pulsing mic icon, live waveform animation
+- No external API needed — runs entirely in browser
+
+**`WizardProvider.tsx`** — React context that holds:
+- Active wizard schema (or null)
+- Current step index
+- Collected form data (`Record<string, any>`)
+- Methods: `startWizard()`, `updateField()`, `nextStep()`, `prevStep()`, `completeWizard()`
+
+### 3. Synchronization: Chat + Wizard
+
+The key innovation is **bidirectional sync** between the AI chat and the wizard:
+
+**Direction A — User fills wizard manually:**
+- When user fills a field and clicks "Next", the field values are sent to the AI as a structured message (e.g., `"[WIZARD_UPDATE] company: Auto Corp, industry: Manufacturing"`)
+- The AI acknowledges and asks follow-up questions or moves the conversation forward
+- This message type is hidden from the visible chat — the AI just reacts naturally
+
+**Direction B — AI fills wizard via voice/chat:**
+- The AI's system prompt is updated to include the current wizard schema and instructions to emit structured `[FIELD_UPDATE]` markers when it extracts data
+- Example: if user says "We're Auto Corp, a manufacturing company", the AI responds naturally AND emits `[FIELD_UPDATE:company_name=Auto Corp][FIELD_UPDATE:industry=Manufacturing]`
+- Frontend parses these markers from the stream, strips them from the visible message, and auto-fills the wizard fields with animations
+- This creates the "magic" effect of the form filling itself as you talk
+
+### 4. Updated Edge Function (`chat/index.ts`)
+
+Modify the system prompt to be wizard-aware:
+- Accept an optional `wizardContext` parameter containing the current schema + step + collected data
+- When wizard is active, the system prompt instructs the AI to:
+  - Ask questions that correspond to unfilled wizard fields
+  - Emit `[FIELD_UPDATE:fieldId=value]` markers when it extracts information
+  - Progress through steps naturally
+  - Confirm collected data before moving to the next step
+- When all fields are collected, AI suggests completing the wizard
+
+### 5. Updated OmniBar Integration
+
+Each quick action now carries a `wizardId`:
+```text
+intents = [
+  { label: "Cut support costs by 50%", category: "AI Support", wizardId: "support_assessment" },
+  { label: "Automate procurement",     category: "Automation", wizardId: "automation_scoping" },
+  ...
+]
+```
+
+When a user selects a quick action:
+1. Close OmniBar
+2. Open chat panel
+3. Start the corresponding wizard
+4. AI sends a contextual greeting referencing the chosen intent
+
+### 6. Voice Mode (Browser Speech API)
+
+- Toggle mic button in the chat input area (next to Send button)
+- Uses `window.SpeechRecognition` (or `webkitSpeechRecognition`)
+- When active: continuous recognition, interim results shown as placeholder text
+- Final transcript auto-submitted as a chat message
+- AI processes it, extracts field values, wizard auto-fills
+- Visual feedback: pulsing red dot, "Listening..." label
+- Fallback: if browser doesn't support Speech API, button is hidden with a tooltip
+
+### 7. Lead Data Persistence
+
+When wizard completes:
+- All collected data is saved to the `leads` table (company, budget_range, timeline, intent_category)
+- Session is linked via `session_id`
+- AI sends a summary confirmation message
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/wizard/WizardProvider.tsx` | Create | React context for wizard state |
+| `src/components/wizard/WizardCard.tsx` | Create | Inline wizard step renderer |
+| `src/components/wizard/wizardSchemas.ts` | Create | Pre-built wizard templates for each intent |
+| `src/components/wizard/WizardProgress.tsx` | Create | Step progress indicator |
+| `src/components/wizard/FieldRenderer.tsx` | Create | Renders individual field types |
+| `src/components/VoiceToggle.tsx` | Create | Mic button with Speech API |
+| `src/components/AIChat.tsx` | Modify | Integrate wizard context, voice toggle, field extraction from stream |
+| `src/components/OmniBar.tsx` | Modify | Pass wizardId when selecting quick actions |
+| `src/pages/Index.tsx` | Modify | Wire wizard provider and pass wizardId through components |
+| `supabase/functions/chat/index.ts` | Modify | Accept wizardContext, update system prompt for field extraction |
+
+## What This Does NOT Include (keeps scope manageable)
+
+- No ElevenLabs voice (uses free browser Speech API instead)
+- No database schema changes (existing `leads` table already has all needed fields)
+- No new edge functions (reuses existing `chat` function with extended prompt)
 
