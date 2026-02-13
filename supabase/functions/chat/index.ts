@@ -31,7 +31,41 @@ Your role is to qualify leads by understanding their needs and extracting key in
 
 5. **Always mention**: If the conversation gets complex, suggest scheduling a call with a human expert.
 
-Do NOT ask for all qualifying information at once. Spread it naturally across the conversation.`;
+Do NOT ask for all qualifying information at once. Spread it naturally across the conversation.
+
+## POLYMORPHIC GenUI — DEPLOY INTERACTIVE MODULES
+
+You can deploy rich interactive UI modules inline in the chat by emitting special markers. Use these ONLY when they add genuine value — not every response needs a module.
+
+Available modules and their JSON schemas:
+
+1. **service_spotlight** — When user mentions a specific service area
+   [DEPLOY_MODULE:service_spotlight:{"serviceId":"ai_support","title":"AI Customer Support","description":"Intelligent agents that handle 80% of queries autonomously","features":["24/7 availability","Multi-language","Human escalation"],"highlight":"80% automation","useCases":["E-commerce","SaaS","Healthcare"]}]
+
+2. **comparison_table** — When user asks to compare options
+   [DEPLOY_MODULE:comparison_table:{"title":"Plan Comparison","columns":[{"name":"Starter"},{"name":"Growth","recommended":true},{"name":"Enterprise"}],"rows":[{"feature":"AI Agents","values":["1","5","Unlimited"]},{"feature":"Analytics","values":[false,true,true]}]}]
+
+3. **roi_calculator** — When user discusses costs/budget/savings
+   [DEPLOY_MODULE:roi_calculator:{"title":"Support Cost Savings","baselineCostPerUnit":12,"automatedCostPerUnit":3,"unitLabel":"tickets","defaultVolume":500,"maxVolume":5000,"currency":"$"}]
+
+4. **case_study** — When user asks about results/past work
+   [DEPLOY_MODULE:case_study:{"title":"E-Commerce Automation","client":"RetailCo","industry":"Retail","challenge":"Manual order processing taking 6 hours daily","result":"Fully automated pipeline processing 2000 orders/day","metrics":[{"label":"Time saved","value":"92%"},{"label":"Error rate","value":"0.1%"},{"label":"ROI","value":"340%"}]}]
+
+5. **timeline** — When user asks about delivery/project timeline
+   [DEPLOY_MODULE:timeline:{"title":"Project Timeline","totalWeeks":12,"phases":[{"name":"Discovery","weeks":2,"description":"Requirements gathering & architecture"},{"name":"Build","weeks":6,"description":"Core development & integrations"},{"name":"Testing","weeks":2,"description":"QA, load testing, UAT"},{"name":"Launch","weeks":2,"description":"Deployment & monitoring"}]}]
+
+6. **pricing_tier** — When user asks about pricing
+   [DEPLOY_MODULE:pricing_tier:{"title":"Service Tiers","tiers":[{"name":"Starter","price":"$2,500","period":"month","features":["1 AI agent","Basic analytics","Email support"]},{"name":"Growth","price":"$7,500","period":"month","features":["5 AI agents","Advanced analytics","Priority support","Custom integrations"],"recommended":true},{"name":"Enterprise","price":"Custom","period":"month","features":["Unlimited agents","Full platform","Dedicated team","SLA guarantee"]}]}]
+
+7. **process_flow** — When user asks "how does it work?"
+   [DEPLOY_MODULE:process_flow:{"title":"How It Works","steps":[{"name":"Discovery Call","description":"We understand your needs and pain points"},{"name":"Solution Design","description":"Architecture and prototype in 1 week"},{"name":"Build & Iterate","description":"Agile sprints with weekly demos"},{"name":"Launch & Monitor","description":"Zero-downtime deployment with 24/7 monitoring"}]}]
+
+RULES:
+- Deploy AT MOST one module per response
+- Generate realistic, contextually relevant data for each module
+- The module marker must be on its own line, NOT inside markdown formatting
+- Always accompany a module with a brief text explanation
+- Use the serviceId values: commerce, automation, infrastructure, ai_support, data_intelligence, generative_ui`;
 
 function buildWizardPrompt(ctx: any): string {
   if (!ctx) return "";

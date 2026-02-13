@@ -6,14 +6,22 @@ import ReactMarkdown from "react-markdown";
 import { useWizard } from "./wizard/WizardProvider";
 import WizardCard from "./wizard/WizardCard";
 import VoiceToggle from "./VoiceToggle";
+import GenUIRenderer from "./genui/GenUIRenderer";
+import { parseModuleDeployments, type ModuleDeployment } from "./genui/parseModules";
 
-type Msg = { role: "user" | "assistant"; content: string; hidden?: boolean };
+type Msg = {
+  role: "user" | "assistant" | "module";
+  content: string;
+  hidden?: boolean;
+  module?: ModuleDeployment;
+};
 
 interface AIChatProps {
   open: boolean;
   onToggle: () => void;
   initialIntent?: string | null;
   wizardId?: string | null;
+  onActiveService?: (service: string | null) => void;
 }
 
 /** Parse [FIELD_UPDATE:key=value] markers from streamed text */
@@ -26,7 +34,7 @@ function parseFieldUpdates(text: string): { clean: string; updates: Record<strin
   return { clean: clean.trim(), updates };
 }
 
-const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
+const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AIChatProps) => {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -42,7 +50,6 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
 
   const wizard = useWizard();
 
-  // Start wizard when wizardId prop changes
   useEffect(() => {
     if (wizardId && !hasStartedWizard.current) {
       hasStartedWizard.current = true;
@@ -65,7 +72,6 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
 
-    // Build wizard context for the edge function
     const wizardContext = wizard.schema
       ? {
           wizardId: wizard.schema.id,
@@ -79,7 +85,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
 
     try {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-      const allMessages = [...messages, userMsg].filter((m) => !m.hidden || m === userMsg).map(({ role, content }) => ({ role, content }));
+      const allMessages = [...messages, userMsg].filter((m) => !m.hidden || m === userMsg).map(({ role, content }) => ({ role: role === "module" ? "assistant" : role, content }));
 
       const resp = await fetch(CHAT_URL, {
         method: "POST",
@@ -97,6 +103,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
       let textBuffer = "";
       let assistantSoFar = "";
       let streamDone = false;
+      const deployedModules: ModuleDeployment[] = [];
 
       while (!streamDone) {
         const { done, value } = await reader.read();
@@ -120,18 +127,51 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
-              const { clean, updates } = parseFieldUpdates(assistantSoFar);
 
-              // Auto-fill wizard fields from AI
+              // Parse field updates
+              const { clean: afterFields, updates } = parseFieldUpdates(assistantSoFar);
               Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
+
+              // Parse module deployments
+              const { clean, modules } = parseModuleDeployments(afterFields);
+              modules.forEach((m) => {
+                if (!deployedModules.find((d) => d.type === m.type && JSON.stringify(d.data) === JSON.stringify(m.data))) {
+                  deployedModules.push(m);
+                }
+              });
+
+              // Emit active service signal for page-level reactivity
+              const serviceMap: Record<string, string> = {
+                service_spotlight: clean.toLowerCase(),
+              };
+              if (modules.length > 0 && modules[0].data?.serviceId) {
+                onActiveService?.(modules[0].data.serviceId);
+              }
 
               const snapshot = clean;
               setMessages((prev) => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && prev.length > 1) {
-                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: snapshot } : m));
+                // Remove old module messages from this stream
+                const withoutStreamModules = prev.filter((m) => !(m.role === "module" && m.hidden));
+                
+                const last = withoutStreamModules[withoutStreamModules.length - 1];
+                let updated: Msg[];
+                if (last?.role === "assistant" && withoutStreamModules.length > 1) {
+                  updated = withoutStreamModules.map((m, i) =>
+                    i === withoutStreamModules.length - 1 ? { ...m, content: snapshot } : m
+                  );
+                } else {
+                  updated = [...withoutStreamModules, { role: "assistant", content: snapshot }];
                 }
-                return [...prev, { role: "assistant", content: snapshot }];
+
+                // Append module messages
+                const moduleMessages: Msg[] = deployedModules.map((mod) => ({
+                  role: "module" as const,
+                  content: "",
+                  hidden: true, // hidden from text but rendered as module
+                  module: mod,
+                }));
+
+                return [...updated, ...moduleMessages];
               });
             }
           } catch {
@@ -148,15 +188,15 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, sessionId, wizard]);
+  }, [messages, isLoading, sessionId, wizard, onActiveService]);
 
   const send = () => sendMessage(input);
 
+  const handleModuleAction = (msg: string) => sendMessage(msg);
+
   const handleWizardStepSubmit = (stepData: Record<string, string>) => {
     const summary = Object.entries(stepData).map(([k, v]) => `${k}: ${v}`).join(", ");
-    if (summary) {
-      sendMessage(`[WIZARD_UPDATE] ${summary}`, true);
-    }
+    if (summary) sendMessage(`[WIZARD_UPDATE] ${summary}`, true);
   };
 
   const handleWizardComplete = async () => {
@@ -164,11 +204,9 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
     sendMessage("[WIZARD_COMPLETE] All information has been collected. Please provide a summary of what was gathered and suggest next steps.", true);
   };
 
-  const handleVoiceTranscript = (text: string) => {
-    sendMessage(text);
-  };
+  const handleVoiceTranscript = (text: string) => sendMessage(text);
 
-  const visibleMessages = messages.filter((m) => !m.hidden);
+  const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
 
   return (
     <>
@@ -208,27 +246,37 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId }: AIChatProps) => {
               </button>
             </div>
 
-            {/* Messages + Wizard */}
+            {/* Messages + Wizard + GenUI Modules */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-              {visibleMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
-                      msg.role === "user"
-                        ? "bg-foreground text-primary-foreground rounded-br-md"
-                        : "bg-secondary text-foreground rounded-bl-md"
-                    }`}
-                  >
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : msg.content}
-                  </div>
-                </div>
-              ))}
+              {visibleMessages.map((msg, i) => {
+                // Render GenUI module
+                if (msg.role === "module" && msg.module) {
+                  return (
+                    <div key={`mod-${i}`} className="w-full">
+                      <GenUIRenderer deployment={msg.module} onAction={handleModuleAction} />
+                    </div>
+                  );
+                }
 
-              {/* Inline Wizard Card */}
+                return (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-foreground text-primary-foreground rounded-br-md"
+                          : "bg-secondary text-foreground rounded-bl-md"
+                      }`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : msg.content}
+                    </div>
+                  </div>
+                );
+              })}
+
               {wizard.schema && !wizard.completed && (
                 <WizardCard onStepSubmit={handleWizardStepSubmit} onComplete={handleWizardComplete} />
               )}
