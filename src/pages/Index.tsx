@@ -12,6 +12,7 @@ const Index = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatIntent, setChatIntent] = useState<string | null>(null);
   const [chatWizardId, setChatWizardId] = useState<string | null>(null);
+  const [activeService, setActiveService] = useState<string | null>(null);
   const servicesRef = useRef<HTMLElement>(null);
 
   const openOmniBar = useCallback(() => setOmniBarOpen(true), []);
@@ -28,6 +29,14 @@ const Index = () => {
     servicesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  // Clear active service highlight after a delay
+  useEffect(() => {
+    if (activeService) {
+      const timer = setTimeout(() => setActiveService(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeService]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -43,7 +52,7 @@ const Index = () => {
     <WizardProvider>
       <main className="min-h-screen bg-background">
         <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={openChat} />
-        <BentoGrid ref={servicesRef} />
+        <BentoGrid ref={servicesRef} activeService={activeService} />
         <TrustProtocol />
         <Footer />
 
@@ -58,6 +67,7 @@ const Index = () => {
           onToggle={toggleChat}
           initialIntent={chatIntent}
           wizardId={chatWizardId}
+          onActiveService={setActiveService}
         />
       </main>
     </WizardProvider>
