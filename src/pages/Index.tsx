@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
+import Navbar from "@/components/Navbar";
+import SocialProof from "@/components/SocialProof";
 import OmniBar from "@/components/OmniBar";
 import BentoGrid from "@/components/BentoGrid";
+import Testimonials from "@/components/Testimonials";
 import TrustProtocol from "@/components/TrustProtocol";
 import AIChat from "@/components/AIChat";
 import Footer from "@/components/Footer";
@@ -29,7 +33,6 @@ const Index = () => {
     servicesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  // Clear active service highlight after a delay
   useEffect(() => {
     if (activeService) {
       const timer = setTimeout(() => setActiveService(null), 8000);
@@ -50,9 +53,17 @@ const Index = () => {
 
   return (
     <WizardProvider>
-      <main className="min-h-screen bg-background">
+      <motion.main
+        className="min-h-screen bg-background"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
+        <Navbar onOpenChat={() => openChat()} />
         <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={openChat} />
-        <BentoGrid ref={servicesRef} activeService={activeService} />
+        <SocialProof />
+        <BentoGrid ref={servicesRef} activeService={activeService} onOpenChat={(intent) => openChat(intent)} />
+        <Testimonials />
         <TrustProtocol />
         <Footer />
 
@@ -69,7 +80,7 @@ const Index = () => {
           wizardId={chatWizardId}
           onActiveService={setActiveService}
         />
-      </main>
+      </motion.main>
     </WizardProvider>
   );
 };

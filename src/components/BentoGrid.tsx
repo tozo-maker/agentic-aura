@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ShoppingCart, Cog, Layers, Server, Headphones, BarChart3 } from "lucide-react";
+import { ShoppingCart, Cog, Layers, Server, Headphones, BarChart3, ArrowRight } from "lucide-react";
 import { forwardRef } from "react";
 
 const services = [
@@ -58,9 +58,10 @@ const cardVariants = {
 
 interface BentoGridProps {
   activeService?: string | null;
+  onOpenChat?: (intent: string) => void;
 }
 
-const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService }, ref) => {
+const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOpenChat }, ref) => {
   return (
     <section ref={ref} id="services" className="py-24 px-6 noise-overlay">
       <div className="max-w-6xl mx-auto">
@@ -91,23 +92,27 @@ const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService }, re
                 whileInView="visible"
                 viewport={{ once: true }}
                 whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-                className={`glass rounded-2xl p-6 cursor-default ${service.span} transition-shadow duration-500 ${
-                  isActive ? "shadow-[0_0_30px_hsl(var(--foreground)/0.12)] ring-1 ring-foreground/20" : ""
+                onClick={() => onOpenChat?.(`Tell me more about ${service.title}`)}
+                className={`glass rounded-2xl p-6 cursor-pointer group ${service.span} transition-all duration-500 ${
+                  isActive ? "ring-2 ring-foreground/20 shadow-[0_0_30px_hsl(var(--foreground)/0.08)]" : ""
                 }`}
               >
-                <div className={`w-10 h-10 rounded-xl bg-secondary flex items-center justify-center mb-4 transition-colors duration-500 ${
-                  isActive ? "bg-foreground" : ""
+                <div className={`w-10 h-10 rounded-xl bg-secondary flex items-center justify-center mb-4 transition-all duration-500 ${
+                  isActive ? "bg-foreground" : "group-hover:bg-foreground"
                 }`}>
-                  <service.icon className={`w-5 h-5 transition-colors duration-500 ${
-                    isActive ? "text-primary-foreground" : "text-foreground"
+                  <service.icon className={`w-5 h-5 transition-all duration-500 ${
+                    isActive ? "text-primary-foreground" : "text-foreground group-hover:text-primary-foreground"
                   }`} />
                 </div>
                 <h3 className="text-xl font-serif font-semibold text-foreground mb-2">
                   {service.title}
                 </h3>
-                <p className="text-sm font-sans text-muted-foreground leading-relaxed">
+                <p className="text-sm font-sans text-muted-foreground leading-relaxed mb-4">
                   {service.description}
                 </p>
+                <span className="inline-flex items-center gap-1 text-xs font-sans font-medium text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  Learn more <ArrowRight className="w-3 h-3" />
+                </span>
               </motion.div>
             );
           })}

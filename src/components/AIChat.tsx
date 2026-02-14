@@ -233,7 +233,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] h-[560px] max-h-[calc(100vh-3rem)] glass rounded-2xl shadow-[var(--shadow-elevated)] flex flex-col overflow-hidden"
+            className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-[380px] sm:max-w-[calc(100vw-3rem)] h-[100dvh] sm:h-[560px] sm:max-h-[calc(100vh-3rem)] glass sm:rounded-2xl shadow-[var(--shadow-elevated)] flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
