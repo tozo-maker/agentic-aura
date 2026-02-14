@@ -1,0 +1,86 @@
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
+
+const stats = [
+  { value: 200, suffix: "+", label: "Automations Deployed" },
+  { value: 98, suffix: "%", label: "Uptime SLA" },
+  { value: 40, suffix: "%", label: "Avg Cost Reduction" },
+  { value: 12, prefix: "$", suffix: "M+", label: "Revenue Automated" },
+];
+
+const clients = [
+  "Meridian", "ArcLight", "Vertex", "Polaris", "Helios", "Cascade", "Axiom", "Luminary",
+];
+
+function AnimatedCounter({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-50px" });
+
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const duration = 1500;
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * value));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [inView, value]);
+
+  return (
+    <span ref={ref} className="text-4xl md:text-5xl font-serif font-semibold text-foreground tabular-nums">
+      {prefix}{count}{suffix}
+    </span>
+  );
+}
+
+const SocialProof = () => {
+  return (
+    <section className="py-20 px-6 border-y border-border noise-overlay">
+      <div className="max-w-6xl mx-auto">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+            >
+              <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+              <p className="text-sm font-sans text-muted-foreground mt-2">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Logo Marquee */}
+        <div className="relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
+          <div className="flex gap-6 animate-marquee">
+            {[...clients, ...clients].map((name, i) => (
+              <div
+                key={`${name}-${i}`}
+                className="flex-shrink-0 glass rounded-full px-6 py-2.5 flex items-center justify-center"
+              >
+                <span className="text-sm font-sans font-medium text-muted-foreground whitespace-nowrap">
+                  {name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default SocialProof;

@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center noise-overlay overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center noise-overlay overflow-hidden pt-20">
       {/* Animated gradient orbs */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20"
