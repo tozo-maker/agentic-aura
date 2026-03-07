@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 interface HeroSectionProps {
   onOpenOmniBar: () => void;
-  onOpenChat: () => void;
+  onOpenChat: (intent?: string) => void;
 }
 
 const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
@@ -65,7 +65,7 @@ const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
           <Button
             size="lg"
             className="rounded-full px-8 h-12 text-base font-sans gap-2"
-            onClick={onOpenChat}
+            onClick={() => onOpenChat()}
           >
             Talk to Our Agent
             <ArrowRight className="w-4 h-4" />
