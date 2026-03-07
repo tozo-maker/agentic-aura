@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 interface HeroSectionProps {
   onOpenOmniBar: () => void;
-  onOpenChat: () => void;
+  onOpenChat: (intent?: string) => void;
 }
 
 const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
