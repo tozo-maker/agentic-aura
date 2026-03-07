@@ -8,7 +8,7 @@ export function parseModuleDeployments(text: string): {
   modules: ModuleDeployment[];
 } {
   const modules: ModuleDeployment[] = [];
-  const clean = text.replace(
+  let clean = text.replace(
     /\[DEPLOY_MODULE:(\w+):([\s\S]*?)\]/g,
     (_, type, jsonStr) => {
       try {
@@ -20,5 +20,15 @@ export function parseModuleDeployments(text: string): {
       return "";
     }
   );
+
+  // Strip any incomplete marker still being streamed
+  const incompleteIdx = clean.lastIndexOf("[DEPLOY_MODULE:");
+  if (incompleteIdx !== -1) {
+    const afterMarker = clean.slice(incompleteIdx);
+    if (!afterMarker.match(/\[DEPLOY_MODULE:\w+:[\s\S]*?\]/)) {
+      clean = clean.slice(0, incompleteIdx);
+    }
+  }
+
   return { clean: clean.trim(), modules };
 }

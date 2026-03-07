@@ -27,10 +27,20 @@ interface AIChatProps {
 /** Parse [FIELD_UPDATE:key=value] markers from streamed text */
 function parseFieldUpdates(text: string): { clean: string; updates: Record<string, string> } {
   const updates: Record<string, string> = {};
-  const clean = text.replace(/\[FIELD_UPDATE:(\w+)=([^\]]+)\]/g, (_, k, v) => {
+  let clean = text.replace(/\[FIELD_UPDATE:(\w+)=([^\]]+)\]/g, (_, k, v) => {
     updates[k] = v;
     return "";
   });
+
+  // Strip any incomplete marker still being streamed
+  const incompleteIdx = clean.lastIndexOf("[FIELD_UPDATE:");
+  if (incompleteIdx !== -1) {
+    const afterMarker = clean.slice(incompleteIdx);
+    if (!afterMarker.match(/\[FIELD_UPDATE:\w+=([^\]]+)\]/)) {
+      clean = clean.slice(0, incompleteIdx);
+    }
+  }
+
   return { clean: clean.trim(), updates };
 }
 
