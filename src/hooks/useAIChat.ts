@@ -110,7 +110,7 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
               const { clean: afterFields, updates } = parseFieldUpdates(assistantSoFar);
               Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
 
-              const { clean, modules } = parseModuleDeployments(afterFields);
+              const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
               modules.forEach((m) => {
                 const existingIdx = streamModules.findIndex((d) => d.type === m.type);
                 if (existingIdx !== -1) streamModules[existingIdx] = m;
@@ -119,6 +119,12 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
 
               if (modules.length > 0 && modules[0].data?.serviceId) {
                 onActiveService?.(modules[0].data.serviceId);
+              }
+
+              // Parse suggestions
+              const { clean, suggestions: parsedSuggestions } = parseSuggestions(afterModules);
+              if (parsedSuggestions.length > 0) {
+                setSuggestions(parsedSuggestions);
               }
 
               // Update deployed modules for canvas (replace by type)
