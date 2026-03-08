@@ -129,13 +129,8 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
 
               // Update deployed modules for canvas (replace by type)
               setDeployedModules((prev) => {
-                const updated = [...prev];
-                streamModules.forEach((sm) => {
-                  const idx = updated.findIndex((p) => p.type === sm.type);
-                  if (idx !== -1) updated[idx] = sm;
-                  else updated.push(sm);
-                });
-                return updated;
+                const updated = prev.filter((p) => !streamModules.some((sm) => sm.type === p.type));
+                return [...streamModules, ...updated];
               });
 
               const snapshot = clean;
