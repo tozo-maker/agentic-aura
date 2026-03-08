@@ -110,6 +110,21 @@ const ChatRail = ({
         )}
       </div>
 
+      {/* Suggestion Chips */}
+      {suggestions.length > 0 && !isLoading && (
+        <div className="flex flex-wrap gap-2 px-3 pb-2">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              onClick={() => onSendMessage(s)}
+              className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">

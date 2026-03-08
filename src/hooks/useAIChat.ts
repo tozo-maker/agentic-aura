@@ -198,6 +198,7 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     setInput,
     isLoading,
     deployedModules,
+    suggestions,
     sendMessage,
     send,
     wizard,
