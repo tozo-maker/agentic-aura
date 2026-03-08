@@ -33,6 +33,7 @@ const CanvasLayout = ({
   wizard,
   onWizardStepSubmit,
   onWizardComplete,
+  suggestions,
 }: CanvasLayoutProps) => {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
