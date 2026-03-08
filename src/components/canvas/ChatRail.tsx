@@ -21,6 +21,7 @@ interface ChatRailProps {
   };
   onWizardStepSubmit: (data: Record<string, string>) => void;
   onWizardComplete: () => void;
+  suggestions: string[];
 }
 
 const ChatRail = ({
