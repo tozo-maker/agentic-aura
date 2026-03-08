@@ -36,6 +36,7 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [deployedModules, setDeployedModules] = useState<ModuleDeployment[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const hasStartedWizard = useRef(false);
   const wizard = useWizard();
 
