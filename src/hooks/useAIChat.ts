@@ -42,6 +42,7 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
 
   const sendMessage = useCallback(async (text: string, hidden = false) => {
     if (!text.trim() || isLoading) return;
+    setSuggestions([]);
 
     const userMsg: Msg = { role: "user", content: text.trim(), hidden };
     setInput("");
