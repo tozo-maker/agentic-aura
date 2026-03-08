@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useWizard } from "@/components/wizard/WizardProvider";
-import { parseModuleDeployments, type ModuleDeployment } from "@/components/genui/parseModules";
+import { parseModuleDeployments, parseSuggestions, type ModuleDeployment } from "@/components/genui/parseModules";
 
 export type Msg = {
   role: "user" | "assistant" | "module";
