@@ -27,6 +27,11 @@ const Navbar = ({ onOpenChat, compact, onBack }: NavbarProps) => {
   const bgOpacity = useTransform(scrollY, [0, 100], [0, 1]);
   const borderOpacity = useTransform(scrollY, [0, 100], [0, 0.15]);
 
+  // Pre-compute motion styles (hooks called unconditionally)
+  const bgColor = useTransform(bgOpacity, (v) => `hsl(var(--background) / ${v * 0.85})`);
+  const blurFilter = useTransform(bgOpacity, (v) => `blur(${v * 20}px)`);
+  const borderStyle = useTransform(borderOpacity, (v) => `1px solid hsl(var(--border) / ${v})`);
+
   const scrollTo = (href: string) => {
     setMobileOpen(false);
     const id = href.replace("#", "");
@@ -36,19 +41,15 @@ const Navbar = ({ onOpenChat, compact, onBack }: NavbarProps) => {
   return (
     <>
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-50 px-6 py-3"
+        className={compact 
+          ? "fixed top-0 left-0 right-0 z-50 px-6 py-3 bg-card border-b border-border" 
+          : "fixed top-0 left-0 right-0 z-50 px-6 py-3"
+        }
         style={compact ? undefined : {
-          backgroundColor: useTransform(bgOpacity, (v) =>
-            `hsl(var(--background) / ${v * 0.85})`
-          ),
-          backdropFilter: useTransform(bgOpacity, (v) =>
-            `blur(${v * 20}px)`
-          ),
-          borderBottom: useTransform(borderOpacity, (v) =>
-            `1px solid hsl(var(--border) / ${v})`
-          ),
+          backgroundColor: bgColor,
+          backdropFilter: blurFilter,
+          borderBottom: borderStyle,
         }}
-        {...(compact ? { className: "fixed top-0 left-0 right-0 z-50 px-6 py-3 bg-card border-b border-border" } : {})}
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           {/* Left */}
