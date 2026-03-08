@@ -25,7 +25,7 @@ const CanvasModuleView = ({ modules, onRemove, onAskAbout }: CanvasModuleViewPro
       <AnimatePresence mode="popLayout">
         {modules.map((mod, i) => (
           <motion.div
-            key={`${mod.type}-${i}`}
+            key={mod.type}
             initial={{ opacity: 0, y: 30, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
