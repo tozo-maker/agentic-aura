@@ -307,6 +307,21 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
               )}
             </div>
 
+            {/* Suggestion Chips */}
+            {suggestions.length > 0 && !isLoading && (
+              <div className="flex flex-wrap gap-2 px-4 pb-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Fallback CTA */}
             <div className="px-4 pb-2">
               <button className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-2">
