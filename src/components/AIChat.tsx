@@ -7,7 +7,7 @@ import { useWizard } from "./wizard/WizardProvider";
 import WizardCard from "./wizard/WizardCard";
 import VoiceToggle from "./VoiceToggle";
 import GenUIRenderer from "./genui/GenUIRenderer";
-import { parseModuleDeployments, type ModuleDeployment } from "./genui/parseModules";
+import { parseModuleDeployments, parseSuggestions, type ModuleDeployment } from "./genui/parseModules";
 
 type Msg = {
   role: "user" | "assistant" | "module";
