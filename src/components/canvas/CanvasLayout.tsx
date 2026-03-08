@@ -17,6 +17,7 @@ interface CanvasLayoutProps {
   wizard: { schema: any; completed: boolean };
   onWizardStepSubmit: (data: Record<string, string>) => void;
   onWizardComplete: () => void;
+  suggestions: string[];
 }
 
 const CanvasLayout = ({
