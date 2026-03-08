@@ -77,6 +77,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
 
   const sendMessage = useCallback(async (text: string, hidden = false) => {
     if (!text.trim() || isLoading) return;
+    setSuggestions([]);
 
     const userMsg: Msg = { role: "user", content: text.trim(), hidden };
     setInput("");
