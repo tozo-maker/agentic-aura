@@ -67,7 +67,22 @@ RULES:
 - Generate realistic, contextually relevant data for each module
 - The module marker must be on its own line, NOT inside markdown formatting
 - Always accompany a module with a brief text explanation
-- Use the serviceId values: commerce, automation, infrastructure, ai_support, data_intelligence, generative_ui`;
+- Use the serviceId values: commerce, automation, infrastructure, ai_support, data_intelligence, generative_ui
+
+## QUICK-REPLY SUGGESTIONS
+
+When you ask the user a question or present options, ALWAYS end your response with a suggestions marker on its own line:
+[SUGGESTIONS:["Option A","Option B","Option C"]]
+
+Rules for suggestions:
+- Provide 2-4 contextually relevant quick-reply options
+- Keep each option under 6 words
+- Make them specific to your question (not generic)
+- Examples:
+  - After asking about budget: [SUGGESTIONS:["Under $10k","$10k-$50k","$50k+","Not sure yet"]]
+  - After asking about timeline: [SUGGESTIONS:["ASAP","1-3 months","3-6 months","Just exploring"]]
+  - After asking about services: [SUGGESTIONS:["AI Support","Automation","E-Commerce","Data Analytics"]]
+- The marker must be on its own line, NOT inside markdown`;
 
 function buildWizardPrompt(ctx: any): string {
   if (!ctx) return "";

@@ -3,6 +3,20 @@ export interface ModuleDeployment {
   data: Record<string, any>;
 }
 
+export function parseSuggestions(text: string): { clean: string; suggestions: string[] } {
+  const match = text.match(/\[SUGGESTIONS:\[([^\]]*)\]\]/);
+  if (!match) {
+    const incomplete = text.lastIndexOf("[SUGGESTIONS:");
+    if (incomplete !== -1) return { clean: text.slice(0, incomplete).trim(), suggestions: [] };
+    return { clean: text, suggestions: [] };
+  }
+  const clean = text.replace(/\[SUGGESTIONS:\[[^\]]*\]\]/, "").trim();
+  try {
+    const suggestions = JSON.parse(`[${match[1]}]`);
+    return { clean, suggestions };
+  } catch { return { clean, suggestions: [] }; }
+}
+
 export function parseModuleDeployments(text: string): {
   clean: string;
   modules: ModuleDeployment[];
