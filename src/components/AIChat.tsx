@@ -145,7 +145,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
               Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
 
               // Parse module deployments
-              const { clean, modules } = parseModuleDeployments(afterFields);
+              const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
               modules.forEach((m) => {
                 if (!deployedModules.find((d) => d.type === m.type && JSON.stringify(d.data) === JSON.stringify(m.data))) {
                   deployedModules.push(m);
@@ -153,11 +153,14 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
               });
 
               // Emit active service signal for page-level reactivity
-              const serviceMap: Record<string, string> = {
-                service_spotlight: clean.toLowerCase(),
-              };
               if (modules.length > 0 && modules[0].data?.serviceId) {
                 onActiveService?.(modules[0].data.serviceId);
+              }
+
+              // Parse suggestions
+              const { clean, suggestions: parsedSuggestions } = parseSuggestions(afterModules);
+              if (parsedSuggestions.length > 0) {
+                setSuggestions(parsedSuggestions);
               }
 
               const snapshot = clean;
