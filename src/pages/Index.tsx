@@ -12,7 +12,7 @@ import { WizardProvider } from "@/components/wizard/WizardProvider";
 import CanvasLayout from "@/components/canvas/CanvasLayout";
 import { useAIChat } from "@/hooks/useAIChat";
 
-const Index = () => {
+const IndexInner = () => {
   const [mode, setMode] = useState<"landing" | "canvas">("landing");
   const [omniBarOpen, setOmniBarOpen] = useState(false);
   const [activeService, setActiveService] = useState<string | null>(null);
@@ -53,66 +53,70 @@ const Index = () => {
   }, []);
 
   return (
-    <WizardProvider>
-      <div className="min-h-screen bg-background">
-        <Navbar
-          onOpenChat={() => openCanvas()}
-          compact={mode === "canvas"}
-          onBack={mode === "canvas" ? () => setMode("landing") : undefined}
-        />
+    <div className="min-h-screen bg-background">
+      <Navbar
+        onOpenChat={() => openCanvas()}
+        compact={mode === "canvas"}
+        onBack={mode === "canvas" ? () => setMode("landing") : undefined}
+      />
 
-        <AnimatePresence mode="wait">
-          {mode === "landing" ? (
-            <motion.main
-              key="landing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={(intent) => openCanvas(intent)} />
-              <SocialProof />
-              <BentoGrid ref={servicesRef} activeService={activeService} onOpenChat={(intent) => openCanvas(intent)} />
-              <Testimonials />
-              <TrustProtocol />
-              <Footer />
-            </motion.main>
-          ) : (
-            <motion.div
-              key="canvas"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="pt-16"
-            >
-              <CanvasLayout
-                messages={chat.messages}
-                input={chat.input}
-                setInput={chat.setInput}
-                isLoading={chat.isLoading}
-                onSend={chat.send}
-                onSendMessage={chat.sendMessage}
-                onBack={() => setMode("landing")}
-                deployedModules={chat.deployedModules}
-                onRemoveModule={chat.removeDeployedModule}
-                wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
-                onWizardStepSubmit={chat.handleWizardStepSubmit}
-                onWizardComplete={chat.handleWizardComplete}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <AnimatePresence mode="wait">
+        {mode === "landing" ? (
+          <motion.main
+            key="landing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={(intent) => openCanvas(intent)} />
+            <SocialProof />
+            <BentoGrid ref={servicesRef} activeService={activeService} onOpenChat={(intent) => openCanvas(intent)} />
+            <Testimonials />
+            <TrustProtocol />
+            <Footer />
+          </motion.main>
+        ) : (
+          <motion.div
+            key="canvas"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="pt-16"
+          >
+            <CanvasLayout
+              messages={chat.messages}
+              input={chat.input}
+              setInput={chat.setInput}
+              isLoading={chat.isLoading}
+              onSend={chat.send}
+              onSendMessage={chat.sendMessage}
+              onBack={() => setMode("landing")}
+              deployedModules={chat.deployedModules}
+              onRemoveModule={chat.removeDeployedModule}
+              wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
+              onWizardStepSubmit={chat.handleWizardStepSubmit}
+              onWizardComplete={chat.handleWizardComplete}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <OmniBar
-          open={omniBarOpen}
-          onClose={closeOmniBar}
-          onOpenChat={(intent) => openCanvas(intent)}
-          onScrollToServices={scrollToServices}
-        />
-      </div>
-    </WizardProvider>
+      <OmniBar
+        open={omniBarOpen}
+        onClose={closeOmniBar}
+        onOpenChat={(intent) => openCanvas(intent)}
+        onScrollToServices={scrollToServices}
+      />
+    </div>
   );
 };
+
+const Index = () => (
+  <WizardProvider>
+    <IndexInner />
+  </WizardProvider>
+);
 
 export default Index;
