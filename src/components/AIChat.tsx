@@ -55,6 +55,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasStartedWizard = useRef(false);
 
