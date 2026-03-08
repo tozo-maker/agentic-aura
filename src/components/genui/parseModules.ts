@@ -8,26 +8,33 @@ export function parseModuleDeployments(text: string): {
   modules: ModuleDeployment[];
 } {
   const modules: ModuleDeployment[] = [];
-  let clean = text.replace(
-    /\[DEPLOY_MODULE:(\w+):([\s\S]*?)\]/g,
-    (_, type, jsonStr) => {
-      try {
-        const data = JSON.parse(jsonStr);
-        modules.push({ type, data });
-      } catch {
-        // skip malformed
-      }
-      return "";
-    }
-  );
+  let clean = "";
+  let i = 0;
+  const marker = "[DEPLOY_MODULE:";
 
-  // Strip any incomplete marker still being streamed
-  const incompleteIdx = clean.lastIndexOf("[DEPLOY_MODULE:");
-  if (incompleteIdx !== -1) {
-    const afterMarker = clean.slice(incompleteIdx);
-    if (!afterMarker.match(/\[DEPLOY_MODULE:\w+:[\s\S]*?\]/)) {
-      clean = clean.slice(0, incompleteIdx);
+  while (i < text.length) {
+    const idx = text.indexOf(marker, i);
+    if (idx === -1) { clean += text.slice(i); break; }
+    clean += text.slice(i, idx);
+
+    const typeStart = idx + marker.length;
+    const colonIdx = text.indexOf(":", typeStart);
+    if (colonIdx === -1) { break; }
+    const type = text.slice(typeStart, colonIdx);
+
+    let depth = 1;
+    let j = colonIdx + 1;
+    while (j < text.length && depth > 0) {
+      if (text[j] === "[") depth++;
+      else if (text[j] === "]") depth--;
+      j++;
     }
+
+    if (depth > 0) { break; }
+
+    const jsonStr = text.slice(colonIdx + 1, j - 1);
+    try { modules.push({ type, data: JSON.parse(jsonStr) }); } catch {}
+    i = j;
   }
 
   return { clean: clean.trim(), modules };
