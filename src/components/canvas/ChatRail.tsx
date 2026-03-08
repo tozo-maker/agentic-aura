@@ -35,6 +35,7 @@ const ChatRail = ({
   wizard,
   onWizardStepSubmit,
   onWizardComplete,
+  suggestions,
 }: ChatRailProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
