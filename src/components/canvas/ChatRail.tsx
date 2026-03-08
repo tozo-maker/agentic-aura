@@ -21,6 +21,7 @@ interface ChatRailProps {
   };
   onWizardStepSubmit: (data: Record<string, string>) => void;
   onWizardComplete: () => void;
+  suggestions: string[];
 }
 
 const ChatRail = ({
@@ -34,6 +35,7 @@ const ChatRail = ({
   wizard,
   onWizardStepSubmit,
   onWizardComplete,
+  suggestions,
 }: ChatRailProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
@@ -107,6 +109,21 @@ const ChatRail = ({
           </div>
         )}
       </div>
+
+      {/* Suggestion Chips */}
+      {suggestions.length > 0 && !isLoading && (
+        <div className="flex flex-wrap gap-2 px-3 pb-2">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              onClick={() => onSendMessage(s)}
+              className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <div className="p-3 border-t border-border">

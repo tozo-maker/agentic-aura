@@ -17,6 +17,7 @@ interface CanvasLayoutProps {
   wizard: { schema: any; completed: boolean };
   onWizardStepSubmit: (data: Record<string, string>) => void;
   onWizardComplete: () => void;
+  suggestions: string[];
 }
 
 const CanvasLayout = ({
@@ -32,6 +33,7 @@ const CanvasLayout = ({
   wizard,
   onWizardStepSubmit,
   onWizardComplete,
+  suggestions,
 }: CanvasLayoutProps) => {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
@@ -47,6 +49,7 @@ const CanvasLayout = ({
         wizard={wizard}
         onWizardStepSubmit={onWizardStepSubmit}
         onWizardComplete={onWizardComplete}
+        suggestions={suggestions}
       />
 
       {/* Canvas Area */}

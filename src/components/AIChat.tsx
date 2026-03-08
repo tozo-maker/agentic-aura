@@ -7,7 +7,7 @@ import { useWizard } from "./wizard/WizardProvider";
 import WizardCard from "./wizard/WizardCard";
 import VoiceToggle from "./VoiceToggle";
 import GenUIRenderer from "./genui/GenUIRenderer";
-import { parseModuleDeployments, type ModuleDeployment } from "./genui/parseModules";
+import { parseModuleDeployments, parseSuggestions, type ModuleDeployment } from "./genui/parseModules";
 
 type Msg = {
   role: "user" | "assistant" | "module";
@@ -55,6 +55,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasStartedWizard = useRef(false);
 
@@ -76,6 +77,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
 
   const sendMessage = useCallback(async (text: string, hidden = false) => {
     if (!text.trim() || isLoading) return;
+    setSuggestions([]);
 
     const userMsg: Msg = { role: "user", content: text.trim(), hidden };
     setInput("");
@@ -143,7 +145,7 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
               Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
 
               // Parse module deployments
-              const { clean, modules } = parseModuleDeployments(afterFields);
+              const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
               modules.forEach((m) => {
                 if (!deployedModules.find((d) => d.type === m.type && JSON.stringify(d.data) === JSON.stringify(m.data))) {
                   deployedModules.push(m);
@@ -151,11 +153,14 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
               });
 
               // Emit active service signal for page-level reactivity
-              const serviceMap: Record<string, string> = {
-                service_spotlight: clean.toLowerCase(),
-              };
               if (modules.length > 0 && modules[0].data?.serviceId) {
                 onActiveService?.(modules[0].data.serviceId);
+              }
+
+              // Parse suggestions
+              const { clean, suggestions: parsedSuggestions } = parseSuggestions(afterModules);
+              if (parsedSuggestions.length > 0) {
+                setSuggestions(parsedSuggestions);
               }
 
               const snapshot = clean;
@@ -301,6 +306,21 @@ const AIChat = ({ open, onToggle, initialIntent, wizardId, onActiveService }: AI
                 </div>
               )}
             </div>
+
+            {/* Suggestion Chips */}
+            {suggestions.length > 0 && !isLoading && (
+              <div className="flex flex-wrap gap-2 px-4 pb-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Fallback CTA */}
             <div className="px-4 pb-2">

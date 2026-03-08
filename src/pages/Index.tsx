@@ -98,6 +98,7 @@ const IndexInner = () => {
               wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
               onWizardStepSubmit={chat.handleWizardStepSubmit}
               onWizardComplete={chat.handleWizardComplete}
+              suggestions={chat.suggestions}
             />
           </motion.div>
         )}
