@@ -49,6 +49,7 @@ const CanvasLayout = ({
         wizard={wizard}
         onWizardStepSubmit={onWizardStepSubmit}
         onWizardComplete={onWizardComplete}
+        suggestions={suggestions}
       />
 
       {/* Canvas Area */}
