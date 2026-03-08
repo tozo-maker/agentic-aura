@@ -110,21 +110,24 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
 
               const { clean, modules } = parseModuleDeployments(afterFields);
               modules.forEach((m) => {
-                if (!streamModules.find((d) => d.type === m.type && JSON.stringify(d.data) === JSON.stringify(m.data))) {
-                  streamModules.push(m);
-                }
+                const existingIdx = streamModules.findIndex((d) => d.type === m.type);
+                if (existingIdx !== -1) streamModules[existingIdx] = m;
+                else streamModules.push(m);
               });
 
               if (modules.length > 0 && modules[0].data?.serviceId) {
                 onActiveService?.(modules[0].data.serviceId);
               }
 
-              // Update deployed modules for canvas
+              // Update deployed modules for canvas (replace by type)
               setDeployedModules((prev) => {
-                const newMods = streamModules.filter(
-                  (sm) => !prev.find((p) => p.type === sm.type && JSON.stringify(p.data) === JSON.stringify(sm.data))
-                );
-                return newMods.length > 0 ? [...prev, ...newMods] : prev;
+                const updated = [...prev];
+                streamModules.forEach((sm) => {
+                  const idx = updated.findIndex((p) => p.type === sm.type);
+                  if (idx !== -1) updated[idx] = sm;
+                  else updated.push(sm);
+                });
+                return updated;
               });
 
               const snapshot = clean;
