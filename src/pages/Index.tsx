@@ -76,6 +76,7 @@ const IndexInner = () => {
             <Testimonials />
             <TrustProtocol />
             <Footer />
+            <FloatingChatBar onSubmit={(msg) => openCanvas(msg)} />
           </motion.main>
         ) : (
           <motion.div
