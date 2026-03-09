@@ -1,6 +1,8 @@
 import ChatRail from "./ChatRail";
 import WelcomeCards from "./WelcomeCards";
 import CanvasModuleView from "./CanvasModuleView";
+import MobileChatDrawer from "./MobileChatDrawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Msg } from "@/hooks/useAIChat";
 import type { ModuleDeployment } from "@/components/genui/parseModules";
 
@@ -35,22 +37,26 @@ const CanvasLayout = ({
   onWizardComplete,
   suggestions,
 }: CanvasLayoutProps) => {
+  const isMobile = useIsMobile();
+
+  const chatProps = {
+    messages,
+    input,
+    setInput,
+    isLoading,
+    onSend,
+    onSendMessage,
+    onBack,
+    wizard,
+    onWizardStepSubmit,
+    onWizardComplete,
+    suggestions,
+  };
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-      {/* Chat Rail */}
-      <ChatRail
-        messages={messages}
-        input={input}
-        setInput={setInput}
-        isLoading={isLoading}
-        onSend={onSend}
-        onSendMessage={onSendMessage}
-        onBack={onBack}
-        wizard={wizard}
-        onWizardStepSubmit={onWizardStepSubmit}
-        onWizardComplete={onWizardComplete}
-        suggestions={suggestions}
-      />
+      {/* Desktop Chat Rail */}
+      {!isMobile && <ChatRail {...chatProps} />}
 
       {/* Canvas Area */}
       <div className="flex-1 overflow-y-auto bg-background">
@@ -64,6 +70,9 @@ const CanvasLayout = ({
           />
         )}
       </div>
+
+      {/* Mobile Chat Drawer */}
+      {isMobile && <MobileChatDrawer {...chatProps} />}
     </div>
   );
 };

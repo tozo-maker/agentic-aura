@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
@@ -127,7 +128,10 @@ const ChatRail = ({
 
       {/* Input */}
       <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2">
+        <motion.div
+          layoutId="chat-input-container"
+          className="flex items-center gap-2 bg-secondary rounded-xl px-3 py-2"
+        >
           <VoiceToggle onTranscript={(t) => onSendMessage(t)} disabled={isLoading} />
           <input
             value={input}
@@ -140,7 +144,7 @@ const ChatRail = ({
           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg" onClick={onSend} disabled={isLoading || !input.trim()}>
             <Send className="w-4 h-4" />
           </Button>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import BentoGrid from "@/components/BentoGrid";
 import Testimonials from "@/components/Testimonials";
 import TrustProtocol from "@/components/TrustProtocol";
 import Footer from "@/components/Footer";
+import FloatingChatBar from "@/components/FloatingChatBar";
 import { WizardProvider } from "@/components/wizard/WizardProvider";
 import CanvasLayout from "@/components/canvas/CanvasLayout";
 import { useAIChat } from "@/hooks/useAIChat";
@@ -75,6 +76,7 @@ const IndexInner = () => {
             <Testimonials />
             <TrustProtocol />
             <Footer />
+            <FloatingChatBar onSubmit={(msg) => openCanvas(msg)} />
           </motion.main>
         ) : (
           <motion.div

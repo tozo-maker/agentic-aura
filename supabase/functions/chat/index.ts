@@ -114,6 +114,46 @@ INSTRUCTIONS:
 - NEVER show the [FIELD_UPDATE:...] markers as visible text to the user — they are parsed by the frontend.`;
 }
 
+async function extractLeadData(supabase: any, sessionId: string, messages: any[]) {
+  const fullConvo = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
+
+  // Simple regex-based extraction (no extra AI call needed)
+  const emailMatch = fullConvo.match(/[\w.-]+@[\w.-]+\.\w{2,}/);
+  const budgetMatch = fullConvo.match(/\$[\d,]+[kK]?[\s-]*(?:\$[\d,]+[kK]?)?|under \$[\d,]+|(?:budget|spend)[^\n]*?(\$[\d,]+[kK]?)/i);
+  const timelineMatch = fullConvo.match(/(?:ASAP|(?:\d+[-–]\d+\s*months?)|(?:next\s+(?:month|quarter|year))|(?:within\s+\d+\s*(?:weeks?|months?)))/i);
+  const companyMatch = fullConvo.match(/(?:company|organization|we(?:'re| are))\s+(?:is\s+|called\s+)?["']?([A-Z][\w\s&]+?)["']?(?:\.|,|\s+and|\s+we|\s+based)/i);
+  const nameMatch = fullConvo.match(/(?:(?:my name is|I'm|I am)\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+
+  // Detect intent category from deployed modules or conversation
+  const intentCategories = ["commerce", "automation", "infrastructure", "ai_support", "data_intelligence", "generative_ui"];
+  const intentMatch = intentCategories.find((cat) =>
+    fullConvo.toLowerCase().includes(cat.replace("_", " "))
+  );
+
+  const leadData: Record<string, string | null> = {};
+  if (emailMatch) leadData.email = emailMatch[0];
+  if (budgetMatch) leadData.budget_range = budgetMatch[0].trim();
+  if (timelineMatch) leadData.timeline = timelineMatch[0].trim();
+  if (companyMatch) leadData.company = companyMatch[1]?.trim() || null;
+  if (nameMatch) leadData.name = nameMatch[1]?.trim() || null;
+  if (intentMatch) leadData.intent_category = intentMatch;
+
+  // Only upsert if we have at least one piece of data
+  if (Object.values(leadData).some((v) => v)) {
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("session_id", sessionId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from("leads").update(leadData).eq("session_id", sessionId);
+    } else {
+      await supabase.from("leads").insert({ session_id: sessionId, ...leadData });
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -135,6 +175,13 @@ serve(async (req) => {
         role: "user",
         content: lastUserMsg.content,
       });
+    }
+
+    // Auto-extract lead data from conversation history
+    if (sessionId && messages.length >= 4) {
+      extractLeadData(supabase, sessionId, messages).catch((e) =>
+        console.error("Lead extraction error:", e)
+      );
     }
 
     const systemPrompt = BASE_SYSTEM_PROMPT + buildWizardPrompt(wizardContext);
