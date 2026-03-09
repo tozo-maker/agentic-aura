@@ -137,6 +137,13 @@ serve(async (req) => {
       });
     }
 
+    // Auto-extract lead data from conversation history
+    if (sessionId && messages.length >= 4) {
+      extractLeadData(supabase, sessionId, messages).catch((e) =>
+        console.error("Lead extraction error:", e)
+      );
+    }
+
     const systemPrompt = BASE_SYSTEM_PROMPT + buildWizardPrompt(wizardContext);
 
     const response = await fetch(
