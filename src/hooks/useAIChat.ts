@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useWizard } from "@/components/wizard/WizardProvider";
 import { parseModuleDeployments, parseSuggestions, type ModuleDeployment } from "@/components/genui/parseModules";
 
@@ -25,24 +25,121 @@ function parseFieldUpdates(text: string): { clean: string; updates: Record<strin
   return { clean: clean.trim(), updates };
 }
 
-export function useAIChat(onActiveService?: (service: string | null) => void) {
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content: "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?",
+const SESSION_KEY = "nexus_chat_sessionId";
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getStoredSession(): { sessionId: string; timestamp: number } | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function storeSession(sessionId: string) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, timestamp: Date.now() }));
+}
+
+function trackAnalytics(sessionId: string, eventType: string, moduleType?: string, metadata?: Record<string, any>) {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat?analytics=true`;
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-  ]);
+    body: JSON.stringify({ sessionId, eventType, moduleType, metadata }),
+  }).catch(() => {});
+}
+
+const INITIAL_MSG: Msg = {
+  role: "assistant",
+  content: "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?",
+};
+
+export function useAIChat(onActiveService?: (service: string | null) => void) {
+  const stored = getStoredSession();
+  const isExpired = stored ? (Date.now() - stored.timestamp > SESSION_EXPIRY_MS) : true;
+
+  const [sessionId] = useState(() => {
+    if (stored && !isExpired) return stored.sessionId;
+    const id = crypto.randomUUID();
+    storeSession(id);
+    return id;
+  });
+
+  const [messages, setMessages] = useState<Msg[]>([INITIAL_MSG]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [deployedModules, setDeployedModules] = useState<ModuleDeployment[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const hasStartedWizard = useRef(false);
   const wizard = useWizard();
+
+  // Load conversation history on mount
+  useEffect(() => {
+    if (historyLoaded) return;
+    setHistoryLoaded(true);
+
+    if (!stored || isExpired) {
+      if (stored && isExpired) {
+        // Expired session — offer to continue as a suggestion
+        setSuggestions(["Continue previous conversation", "Start fresh"]);
+      }
+      return;
+    }
+
+    const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat?history=true&sessionId=${encodeURIComponent(stored.sessionId)}`;
+    fetch(CHAT_URL, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+    })
+      .then((r) => r.json())
+      .then(({ messages: history }) => {
+        if (!history || history.length === 0) return;
+
+        const restored: Msg[] = [];
+        const restoredModules: ModuleDeployment[] = [];
+
+        for (const msg of history) {
+          if (msg.role === "assistant") {
+            // Re-parse modules from stored assistant messages
+            const { clean: afterFields } = parseFieldUpdates(msg.content);
+            const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
+            const { clean, suggestions: s } = parseSuggestions(afterModules);
+
+            modules.forEach((m) => {
+              const idx = restoredModules.findIndex((d) => d.type === m.type);
+              if (idx !== -1) restoredModules[idx] = m;
+              else restoredModules.push(m);
+            });
+
+            restored.push({ role: "assistant", content: clean });
+            modules.forEach((mod) =>
+              restored.push({ role: "module", content: "", hidden: true, module: mod })
+            );
+            if (s.length > 0) setSuggestions(s);
+          } else {
+            // Skip hidden wizard messages
+            if (msg.content.startsWith("[WIZARD_")) continue;
+            restored.push({ role: "user", content: msg.content });
+          }
+        }
+
+        if (restored.length > 0) {
+          setMessages(restored);
+          setDeployedModules(restoredModules);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendMessage = useCallback(async (text: string, hidden = false) => {
     if (!text.trim() || isLoading) return;
     setSuggestions([]);
+
+    // Update stored session timestamp
+    storeSession(sessionId);
 
     const userMsg: Msg = { role: "user", content: text.trim(), hidden };
     setInput("");
@@ -121,13 +218,11 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
                 onActiveService?.(modules[0].data.serviceId);
               }
 
-              // Parse suggestions
               const { clean, suggestions: parsedSuggestions } = parseSuggestions(afterModules);
               if (parsedSuggestions.length > 0) {
                 setSuggestions(parsedSuggestions);
               }
 
-              // Update deployed modules for canvas (replace by type)
               setDeployedModules((prev) => {
                 const updated = prev.filter((p) => !streamModules.some((sm) => sm.type === p.type));
                 return [...streamModules, ...updated];
@@ -186,6 +281,14 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     setDeployedModules((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const preloadModule = useCallback((type: string, data: Record<string, any>) => {
+    setDeployedModules((prev) => {
+      const filtered = prev.filter((m) => m.type !== type);
+      return [{ type, data }, ...filtered];
+    });
+    trackAnalytics(sessionId, "module_preloaded", type);
+  }, [sessionId]);
+
   return {
     sessionId,
     messages,
@@ -201,5 +304,6 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     handleWizardStepSubmit,
     handleWizardComplete,
     removeDeployedModule,
+    preloadModule,
   };
 }

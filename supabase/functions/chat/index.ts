@@ -117,14 +117,12 @@ INSTRUCTIONS:
 async function extractLeadData(supabase: any, sessionId: string, messages: any[]) {
   const fullConvo = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
 
-  // Simple regex-based extraction (no extra AI call needed)
   const emailMatch = fullConvo.match(/[\w.-]+@[\w.-]+\.\w{2,}/);
   const budgetMatch = fullConvo.match(/\$[\d,]+[kK]?[\s-]*(?:\$[\d,]+[kK]?)?|under \$[\d,]+|(?:budget|spend)[^\n]*?(\$[\d,]+[kK]?)/i);
   const timelineMatch = fullConvo.match(/(?:ASAP|(?:\d+[-–]\d+\s*months?)|(?:next\s+(?:month|quarter|year))|(?:within\s+\d+\s*(?:weeks?|months?)))/i);
   const companyMatch = fullConvo.match(/(?:company|organization|we(?:'re| are))\s+(?:is\s+|called\s+)?["']?([A-Z][\w\s&]+?)["']?(?:\.|,|\s+and|\s+we|\s+based)/i);
   const nameMatch = fullConvo.match(/(?:(?:my name is|I'm|I am)\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
 
-  // Detect intent category from deployed modules or conversation
   const intentCategories = ["commerce", "automation", "infrastructure", "ai_support", "data_intelligence", "generative_ui"];
   const intentMatch = intentCategories.find((cat) =>
     fullConvo.toLowerCase().includes(cat.replace("_", " "))
@@ -138,7 +136,6 @@ async function extractLeadData(supabase: any, sessionId: string, messages: any[]
   if (nameMatch) leadData.name = nameMatch[1]?.trim() || null;
   if (intentMatch) leadData.intent_category = intentMatch;
 
-  // Only upsert if we have at least one piece of data
   if (Object.values(leadData).some((v) => v)) {
     const { data: existing } = await supabase
       .from("leads")
@@ -154,27 +151,76 @@ async function extractLeadData(supabase: any, sessionId: string, messages: any[]
   }
 }
 
+async function trackEvent(supabase: any, sessionId: string, eventType: string, moduleType?: string, metadata?: Record<string, any>) {
+  await supabase.from("chat_analytics").insert({
+    session_id: sessionId,
+    event_type: eventType,
+    module_type: moduleType || null,
+    metadata: metadata || {},
+  }).then(() => {}).catch((e: any) => console.error("Analytics error:", e));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, sessionId, wizardContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
+    const url = new URL(req.url);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // History endpoint: GET ?history=true&sessionId=xxx
+    if (url.searchParams.get("history") === "true") {
+      const sessionId = url.searchParams.get("sessionId");
+      if (!sessionId) {
+        return new Response(JSON.stringify({ messages: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: msgs } = await supabase
+        .from("chat_messages")
+        .select("role, content, created_at")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true })
+        .limit(100);
+
+      return new Response(JSON.stringify({ messages: msgs || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Analytics-only endpoint
+    if (url.searchParams.get("analytics") === "true") {
+      const body = await req.json();
+      await trackEvent(supabase, body.sessionId, body.eventType, body.moduleType, body.metadata);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Main chat endpoint
+    const { messages, sessionId, wizardContext } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
     const lastUserMsg = messages[messages.length - 1];
+    const isFirstMessage = messages.filter((m: any) => m.role === "user").length <= 1;
+
     if (lastUserMsg?.role === "user" && sessionId) {
       await supabase.from("chat_messages").insert({
         session_id: sessionId,
         role: "user",
         content: lastUserMsg.content,
       });
+
+      // Track session_start on first message
+      if (isFirstMessage) {
+        trackEvent(supabase, sessionId, "session_start").catch(() => {});
+      }
+      trackEvent(supabase, sessionId, "message_sent", undefined, { messageCount: messages.length }).catch(() => {});
     }
 
     // Auto-extract lead data from conversation history
@@ -226,7 +272,55 @@ serve(async (req) => {
       );
     }
 
-    return new Response(response.body, {
+    // Stream the response but also collect it to save to DB
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const reader = response.body!.getReader();
+    let fullAssistantText = "";
+
+    (async () => {
+      const decoder = new TextDecoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await writer.write(value);
+
+          // Collect text for DB storage
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) fullAssistantText += content;
+            } catch {}
+          }
+        }
+      } finally {
+        await writer.close();
+
+        // Save assistant response to DB
+        if (sessionId && fullAssistantText) {
+          supabase.from("chat_messages").insert({
+            session_id: sessionId,
+            role: "assistant",
+            content: fullAssistantText,
+          }).then(() => {}).catch((e: any) => console.error("Save assistant msg error:", e));
+
+          // Track module deployments
+          const moduleMatches = fullAssistantText.matchAll(/\[DEPLOY_MODULE:(\w+):/g);
+          for (const match of moduleMatches) {
+            trackEvent(supabase, sessionId, "module_deployed", match[1]).catch(() => {});
+          }
+        }
+      }
+    })();
+
+    return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
