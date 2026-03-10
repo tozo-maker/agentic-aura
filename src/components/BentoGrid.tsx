@@ -58,7 +58,7 @@ const cardVariants = {
 
 interface BentoGridProps {
   activeService?: string | null;
-  onOpenChat?: (intent: string) => void;
+  onOpenChat?: (intent: string, serviceId?: string) => void;
 }
 
 const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOpenChat }, ref) => {
@@ -92,7 +92,7 @@ const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOp
                 whileInView="visible"
                 viewport={{ once: true }}
                 whileHover={{ y: -4, transition: { type: "spring", stiffness: 300, damping: 20 } }}
-                onClick={() => onOpenChat?.(`Tell me more about ${service.title}`)}
+                onClick={() => onOpenChat?.(`Tell me more about ${service.title}`, service.id)}
                 className={`glass rounded-2xl p-6 cursor-pointer group ${service.span} transition-all duration-500 ${
                   isActive ? "ring-2 ring-foreground/20 shadow-[0_0_30px_hsl(var(--foreground)/0.08)]" : ""
                 }`}

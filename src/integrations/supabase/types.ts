@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          module_type: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          module_type?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          module_type?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
