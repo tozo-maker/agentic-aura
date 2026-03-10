@@ -58,7 +58,7 @@ const cardVariants = {
 
 interface BentoGridProps {
   activeService?: string | null;
-  onOpenChat?: (intent: string) => void;
+  onOpenChat?: (intent: string, serviceId?: string) => void;
 }
 
 const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOpenChat }, ref) => {
