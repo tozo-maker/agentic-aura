@@ -3,14 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
 import Navbar from "@/components/Navbar";
 import SocialProof from "@/components/SocialProof";
-import OmniBar from "@/components/OmniBar";
 import BentoGrid from "@/components/BentoGrid";
 import Testimonials from "@/components/Testimonials";
 import TrustProtocol from "@/components/TrustProtocol";
 import Footer from "@/components/Footer";
-import FloatingChatBar from "@/components/FloatingChatBar";
+import AmbientInputBar from "@/components/AmbientInputBar";
+import ConversationThread from "@/components/ConversationThread";
 import { WizardProvider } from "@/components/wizard/WizardProvider";
-import CanvasLayout from "@/components/canvas/CanvasLayout";
 import { useAIChat } from "@/hooks/useAIChat";
 
 const SERVICE_MODULE_MAP: Record<string, { type: string; data: Record<string, any> }> = {
@@ -84,31 +83,26 @@ const SERVICE_MODULE_MAP: Record<string, { type: string; data: Record<string, an
 };
 
 const IndexInner = () => {
-  const [mode, setMode] = useState<"landing" | "canvas">("landing");
-  const [omniBarOpen, setOmniBarOpen] = useState(false);
   const [activeService, setActiveService] = useState<string | null>(null);
   const servicesRef = useRef<HTMLElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
 
   const chat = useAIChat((service) => setActiveService(service));
 
-  const openOmniBar = useCallback(() => setOmniBarOpen(true), []);
-  const closeOmniBar = useCallback(() => setOmniBarOpen(false), []);
+  // Whether the user has started a conversation (sent at least one message)
+  const hasConversation = chat.messages.length > 1 || chat.deployedModules.length > 0;
 
-  const openCanvas = useCallback((intent?: string, serviceId?: string) => {
-    // Pre-deploy module if we have a service mapping
+  const handleSendMessage = useCallback((text: string, serviceId?: string) => {
     if (serviceId && SERVICE_MODULE_MAP[serviceId]) {
       const { type, data } = SERVICE_MODULE_MAP[serviceId];
       chat.preloadModule(type, data);
     }
-    setMode("canvas");
-    if (intent) {
-      chat.sendMessage(intent);
-    }
+    chat.sendMessage(text);
+    // Scroll to thread after a tick
+    setTimeout(() => {
+      threadRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }, [chat]);
-
-  const scrollToServices = useCallback(() => {
-    servicesRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   useEffect(() => {
     if (activeService) {
@@ -117,79 +111,79 @@ const IndexInner = () => {
     }
   }, [activeService]);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setOmniBarOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
-      <Navbar
-        onOpenChat={() => openCanvas()}
-        compact={mode === "canvas"}
-        onBack={mode === "canvas" ? () => setMode("landing") : undefined}
-      />
+      <Navbar />
 
-      <AnimatePresence mode="wait">
-        {mode === "landing" ? (
-          <motion.main
-            key="landing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <HeroSection onOpenOmniBar={openOmniBar} onOpenChat={(intent) => openCanvas(intent)} />
-            <SocialProof />
-            <BentoGrid
-              ref={servicesRef}
-              activeService={activeService}
-              onOpenChat={(intent, serviceId) => openCanvas(intent, serviceId)}
-            />
-            <Testimonials />
-            <TrustProtocol />
-            <Footer />
-            <FloatingChatBar onSubmit={(msg) => openCanvas(msg)} />
-          </motion.main>
-        ) : (
-          <motion.div
-            key="canvas"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="pt-16"
-          >
-            <CanvasLayout
+      <main>
+        {/* Hero — compresses when conversation is active */}
+        <AnimatePresence mode="wait">
+          {!hasConversation ? (
+            <motion.div
+              key="hero-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <HeroSection />
+              <SocialProof />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="hero-compact"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="pt-20 pb-4 px-6 text-center"
+            >
+              <h2 className="text-2xl md:text-3xl font-serif font-semibold text-foreground">
+                Nexus AI
+              </h2>
+              <p className="text-sm text-muted-foreground font-sans mt-1">
+                Your AI consultant — ask anything
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Conversation Thread — appears inline */}
+        {hasConversation && (
+          <div ref={threadRef}>
+            <ConversationThread
               messages={chat.messages}
-              input={chat.input}
-              setInput={chat.setInput}
               isLoading={chat.isLoading}
-              onSend={chat.send}
-              onSendMessage={chat.sendMessage}
-              onBack={() => setMode("landing")}
               deployedModules={chat.deployedModules}
               onRemoveModule={chat.removeDeployedModule}
+              onSendMessage={chat.sendMessage}
               wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
               onWizardStepSubmit={chat.handleWizardStepSubmit}
               onWizardComplete={chat.handleWizardComplete}
               suggestions={chat.suggestions}
             />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
-      <OmniBar
-        open={omniBarOpen}
-        onClose={closeOmniBar}
-        onOpenChat={(intent) => openCanvas(intent)}
-        onScrollToServices={scrollToServices}
+        {/* Marketing sections — still visible below, fade when conversation active */}
+        <motion.div
+          animate={{ opacity: hasConversation ? 0.6 : 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <BentoGrid
+            ref={servicesRef}
+            activeService={activeService}
+            onOpenChat={(intent, serviceId) => handleSendMessage(intent, serviceId)}
+          />
+          <Testimonials />
+          <TrustProtocol />
+          <Footer />
+        </motion.div>
+      </main>
+
+      {/* Ambient Input Bar — always present */}
+      <AmbientInputBar
+        onSubmit={(msg) => handleSendMessage(msg)}
+        isLoading={chat.isLoading}
+        minimal={hasConversation}
       />
     </div>
   );
