@@ -1,15 +1,8 @@
 import { motion } from "framer-motion";
-import { Command, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-interface HeroSectionProps {
-  onOpenOmniBar: () => void;
-  onOpenChat: (intent?: string) => void;
-}
-
-const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
+const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center noise-overlay overflow-hidden pt-20">
+    <section className="relative min-h-[70vh] flex items-center justify-center noise-overlay overflow-hidden pt-20">
       {/* Animated gradient orbs */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20"
@@ -47,7 +40,7 @@ const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
         </motion.h1>
 
         <motion.p
-          className="text-lg md:text-xl text-muted-foreground font-sans max-w-2xl mx-auto mb-12 leading-relaxed"
+          className="text-lg md:text-xl text-muted-foreground font-sans max-w-2xl mx-auto mb-6 leading-relaxed"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -56,31 +49,14 @@ const HeroSection = ({ onOpenOmniBar, onOpenChat }: HeroSectionProps) => {
           Commerce, workflows, and infrastructure that run themselves.
         </motion.p>
 
-        <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        <motion.p
+          className="text-sm text-muted-foreground/60 font-sans"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
         >
-          <Button
-            size="lg"
-            className="rounded-full px-8 h-12 text-base font-sans gap-2"
-            onClick={() => onOpenChat()}
-          >
-            Talk to Our Agent
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="rounded-full px-8 h-12 text-base font-sans glass gap-2"
-            onClick={onOpenOmniBar}
-          >
-            <Command className="w-4 h-4" />
-            Scope Your Project
-            <kbd className="ml-1 text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
-          </Button>
-        </motion.div>
+          Start typing below to talk to our AI ↓
+        </motion.p>
       </div>
     </section>
   );
