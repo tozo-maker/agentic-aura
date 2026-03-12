@@ -7,6 +7,42 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+interface ChatRequest {
+  messages: ChatMessage[];
+  sessionId: string;
+  wizardContext?: WizardContext;
+}
+
+interface WizardContext {
+  wizardId: string;
+  currentStep: { title: string; fields: Array<{ id: string; label: string }> };
+  stepIndex: number;
+  totalSteps: number;
+  collectedData: Record<string, string>;
+  allFields: string[];
+}
+
+interface LeadData {
+  email?: string | null;
+  company?: string | null;
+  budget_range?: string | null;
+  timeline?: string | null;
+  name?: string | null;
+  intent_category?: string | null;
+}
+
+interface AnalyticsEvent {
+  sessionId: string;
+  eventType: string;
+  moduleType?: string;
+  metadata?: Record<string, unknown>;
+}
+
 const BASE_SYSTEM_PROMPT = `You are the Nexus AI Consultant — a sophisticated, warm, and professional AI agent for a hybrid intelligence agency called Nexus AI.
 
 Your role is to qualify leads by understanding their needs and extracting key information through natural conversation. You should:
@@ -84,7 +120,19 @@ Rules for suggestions:
   - After asking about services: [SUGGESTIONS:["AI Support","Automation","E-Commerce","Data Analytics"]]
 - The marker must be on its own line, NOT inside markdown`;
 
-function buildWizardPrompt(ctx: any): string {
+const LEAD_EXTRACTION_PROMPT = `Analyze this conversation and extract any lead information mentioned. Return ONLY a valid JSON object with these fields (use null for missing):
+{
+  "email": "string or null",
+  "company": "string or null",
+  "name": "string or null",
+  "budget_range": "string or null (e.g. 'under $10k', '$10-50k', '$50k+')",
+  "timeline": "string or null (e.g. 'ASAP', '1-3 months')",
+  "intent_category": "string or null (one of: commerce, automation, infrastructure, ai_support, data_intelligence, generative_ui)"
+}
+
+Return ONLY the JSON, no markdown, no explanation.`;
+
+function buildWizardPrompt(ctx: WizardContext | undefined): string {
   if (!ctx) return "";
 
   const step = ctx.currentStep;
@@ -92,8 +140,8 @@ function buildWizardPrompt(ctx: any): string {
     .map(([k, v]) => `${k}=${v}`)
     .join(", ");
   const unfilled = step.fields
-    .filter((f: any) => !ctx.collectedData[f.id])
-    .map((f: any) => `${f.id} (${f.label})`)
+    .filter((f) => !ctx.collectedData[f.id])
+    .map((f) => `${f.id} (${f.label})`)
     .join(", ");
 
   return `
@@ -114,29 +162,52 @@ INSTRUCTIONS:
 - NEVER show the [FIELD_UPDATE:...] markers as visible text to the user — they are parsed by the frontend.`;
 }
 
-async function extractLeadData(supabase: any, sessionId: string, messages: any[]) {
-  const fullConvo = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
+async function extractLeadDataAI(
+  supabase: ReturnType<typeof createClient>,
+  sessionId: string,
+  messages: ChatMessage[],
+  apiKey: string
+) {
+  const fullConvo = messages.map((m) => `${m.role}: ${m.content}`).join("\n");
 
-  const emailMatch = fullConvo.match(/[\w.-]+@[\w.-]+\.\w{2,}/);
-  const budgetMatch = fullConvo.match(/\$[\d,]+[kK]?[\s-]*(?:\$[\d,]+[kK]?)?|under \$[\d,]+|(?:budget|spend)[^\n]*?(\$[\d,]+[kK]?)/i);
-  const timelineMatch = fullConvo.match(/(?:ASAP|(?:\d+[-–]\d+\s*months?)|(?:next\s+(?:month|quarter|year))|(?:within\s+\d+\s*(?:weeks?|months?)))/i);
-  const companyMatch = fullConvo.match(/(?:company|organization|we(?:'re| are))\s+(?:is\s+|called\s+)?["']?([A-Z][\w\s&]+?)["']?(?:\.|,|\s+and|\s+we|\s+based)/i);
-  const nameMatch = fullConvo.match(/(?:(?:my name is|I'm|I am)\s+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: LEAD_EXTRACTION_PROMPT },
+          { role: "user", content: fullConvo },
+        ],
+        stream: false,
+      }),
+    });
 
-  const intentCategories = ["commerce", "automation", "infrastructure", "ai_support", "data_intelligence", "generative_ui"];
-  const intentMatch = intentCategories.find((cat) =>
-    fullConvo.toLowerCase().includes(cat.replace("_", " "))
-  );
+    if (!response.ok) {
+      console.error("Lead extraction AI call failed:", response.status);
+      return;
+    }
 
-  const leadData: Record<string, string | null> = {};
-  if (emailMatch) leadData.email = emailMatch[0];
-  if (budgetMatch) leadData.budget_range = budgetMatch[0].trim();
-  if (timelineMatch) leadData.timeline = timelineMatch[0].trim();
-  if (companyMatch) leadData.company = companyMatch[1]?.trim() || null;
-  if (nameMatch) leadData.name = nameMatch[1]?.trim() || null;
-  if (intentMatch) leadData.intent_category = intentMatch;
+    const result = await response.json();
+    const raw = result.choices?.[0]?.message?.content?.trim();
+    if (!raw) return;
 
-  if (Object.values(leadData).some((v) => v)) {
+    // Strip markdown fences if present
+    const jsonStr = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/, "").trim();
+    const leadData: LeadData = JSON.parse(jsonStr);
+
+    // Filter out null values
+    const cleanData: Record<string, string> = {};
+    for (const [k, v] of Object.entries(leadData)) {
+      if (v != null && v !== "") cleanData[k] = v;
+    }
+
+    if (Object.keys(cleanData).length === 0) return;
+
     const { data: existing } = await supabase
       .from("leads")
       .select("id")
@@ -144,20 +215,32 @@ async function extractLeadData(supabase: any, sessionId: string, messages: any[]
       .maybeSingle();
 
     if (existing) {
-      await supabase.from("leads").update(leadData).eq("session_id", sessionId);
+      await supabase.from("leads").update(cleanData).eq("session_id", sessionId);
     } else {
-      await supabase.from("leads").insert({ session_id: sessionId, ...leadData });
+      await supabase.from("leads").insert({ session_id: sessionId, ...cleanData });
     }
+  } catch (e) {
+    console.error("Lead extraction error:", e);
   }
 }
 
-async function trackEvent(supabase: any, sessionId: string, eventType: string, moduleType?: string, metadata?: Record<string, any>) {
-  await supabase.from("chat_analytics").insert({
-    session_id: sessionId,
-    event_type: eventType,
-    module_type: moduleType || null,
-    metadata: metadata || {},
-  }).then(() => {}).catch((e: any) => console.error("Analytics error:", e));
+async function trackEvent(
+  supabase: ReturnType<typeof createClient>,
+  sessionId: string,
+  eventType: string,
+  moduleType?: string,
+  metadata?: Record<string, unknown>
+) {
+  await supabase
+    .from("chat_analytics")
+    .insert({
+      session_id: sessionId,
+      event_type: eventType,
+      module_type: moduleType || null,
+      metadata: metadata || {},
+    })
+    .then(() => {})
+    .catch((e: Error) => console.error("Analytics error:", e));
 }
 
 serve(async (req) => {
@@ -171,7 +254,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // History endpoint: GET ?history=true&sessionId=xxx
+    // History endpoint
     if (url.searchParams.get("history") === "true") {
       const sessionId = url.searchParams.get("sessionId");
       if (!sessionId) {
@@ -194,7 +277,7 @@ serve(async (req) => {
 
     // Analytics-only endpoint
     if (url.searchParams.get("analytics") === "true") {
-      const body = await req.json();
+      const body: AnalyticsEvent = await req.json();
       await trackEvent(supabase, body.sessionId, body.eventType, body.moduleType, body.metadata);
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -202,12 +285,12 @@ serve(async (req) => {
     }
 
     // Main chat endpoint
-    const { messages, sessionId, wizardContext } = await req.json();
+    const { messages, sessionId, wizardContext }: ChatRequest = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const lastUserMsg = messages[messages.length - 1];
-    const isFirstMessage = messages.filter((m: any) => m.role === "user").length <= 1;
+    const isFirstMessage = messages.filter((m) => m.role === "user").length <= 1;
 
     if (lastUserMsg?.role === "user" && sessionId) {
       await supabase.from("chat_messages").insert({
@@ -216,40 +299,36 @@ serve(async (req) => {
         content: lastUserMsg.content,
       });
 
-      // Track session_start on first message
       if (isFirstMessage) {
         trackEvent(supabase, sessionId, "session_start").catch(() => {});
       }
       trackEvent(supabase, sessionId, "message_sent", undefined, { messageCount: messages.length }).catch(() => {});
     }
 
-    // Auto-extract lead data from conversation history
+    // AI-powered lead extraction (async, non-blocking)
     if (sessionId && messages.length >= 4) {
-      extractLeadData(supabase, sessionId, messages).catch((e) =>
+      extractLeadDataAI(supabase, sessionId, messages, LOVABLE_API_KEY).catch((e) =>
         console.error("Lead extraction error:", e)
       );
     }
 
     const systemPrompt = BASE_SYSTEM_PROMPT + buildWizardPrompt(wizardContext);
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: true,
-        }),
-      }
-    );
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -272,7 +351,7 @@ serve(async (req) => {
       );
     }
 
-    // Stream the response but also collect it to save to DB
+    // Stream response and collect for DB
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const reader = response.body!.getReader();
@@ -286,7 +365,6 @@ serve(async (req) => {
           if (done) break;
           await writer.write(value);
 
-          // Collect text for DB storage
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n");
           for (const line of lines) {
@@ -303,15 +381,17 @@ serve(async (req) => {
       } finally {
         await writer.close();
 
-        // Save assistant response to DB
         if (sessionId && fullAssistantText) {
-          supabase.from("chat_messages").insert({
-            session_id: sessionId,
-            role: "assistant",
-            content: fullAssistantText,
-          }).then(() => {}).catch((e: any) => console.error("Save assistant msg error:", e));
+          supabase
+            .from("chat_messages")
+            .insert({
+              session_id: sessionId,
+              role: "assistant",
+              content: fullAssistantText,
+            })
+            .then(() => {})
+            .catch((e: Error) => console.error("Save assistant msg error:", e));
 
-          // Track module deployments
           const moduleMatches = fullAssistantText.matchAll(/\[DEPLOY_MODULE:(\w+):/g);
           for (const match of moduleMatches) {
             trackEvent(supabase, sessionId, "module_deployed", match[1]).catch(() => {});
