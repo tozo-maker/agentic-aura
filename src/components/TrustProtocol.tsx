@@ -25,9 +25,8 @@ const modes = {
 };
 
 const badges = [
-  { icon: ShieldCheck, label: "Human Verified" },
-  { icon: Lock, label: "Zero Retention" },
-  { icon: Accessibility, label: "WCAG 2.2 AA" },
+  { icon: ShieldCheck, label: "Human-Verified Outputs" },
+  { icon: Lock, label: "Encrypted Sessions" },
 ];
 
 const TrustProtocol = () => {

@@ -60,6 +60,9 @@ const SocialProof = () => {
             </motion.div>
           ))}
         </div>
+        <p className="text-center text-[10px] font-sans text-muted-foreground/60 mt-4 uppercase tracking-wider">
+          Target benchmarks based on aggregate project data
+        </p>
 
         {/* Logo Marquee */}
         <div className="relative overflow-hidden">

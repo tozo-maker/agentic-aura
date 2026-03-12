@@ -3,21 +3,21 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "Nexus AI automated our entire procurement pipeline. What used to take 3 days now happens in 20 minutes.",
-    name: "Sarah Chen",
-    role: "COO, Meridian Logistics",
+    quote: "We automated our entire procurement pipeline. What used to take 3 days now happens in 20 minutes.",
+    name: "Logistics COO",
+    role: "Enterprise Supply Chain",
     metric: "92% faster",
   },
   {
-    quote: "Their AI support agent handles 80% of our tickets autonomously. Our CSAT score has never been higher.",
-    name: "Marcus Webb",
-    role: "VP Support, ArcLight SaaS",
+    quote: "The AI support agent handles 80% of our tickets autonomously. Our CSAT score has never been higher.",
+    name: "SaaS VP Support",
+    role: "B2B Software Platform",
     metric: "60% cost cut",
   },
   {
-    quote: "The self-healing infrastructure saved us during Black Friday. Zero downtime, zero stress.",
-    name: "Priya Patel",
-    role: "CTO, Vertex Commerce",
+    quote: "Self-healing infrastructure saved us during peak traffic. Zero downtime, zero stress.",
+    name: "E-Commerce CTO",
+    role: "DTC Retail Brand",
     metric: "99.99% uptime",
   },
 ];
@@ -37,8 +37,11 @@ const Testimonials = () => {
             Results
           </span>
           <h2 className="text-4xl md:text-5xl font-serif font-semibold mt-4 text-foreground">
-            What Our Clients Say
+            What Results Look Like
           </h2>
+          <p className="text-xs font-sans text-muted-foreground mt-3">
+            Representative scenarios based on typical client outcomes
+          </p>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

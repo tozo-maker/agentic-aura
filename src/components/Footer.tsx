@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import RevealOnScroll from "./RevealOnScroll";
 
 const serviceLinks = [
@@ -10,12 +11,15 @@ const serviceLinks = [
 ];
 
 const companyLinks = [
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-  { label: "Contact", href: "#" },
+  { label: "Privacy Policy", to: "/privacy" },
+  { label: "Terms of Service", to: "/terms" },
 ];
 
-const Footer = () => {
+interface FooterProps {
+  onScheduleCall?: () => void;
+}
+
+const Footer = ({ onScheduleCall }: FooterProps) => {
   const scrollTo = (href: string) => {
     const id = href.replace("#", "");
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -32,17 +36,6 @@ const Footer = () => {
               <p className="text-sm font-sans text-muted-foreground leading-relaxed mb-6">
                 Hybrid intelligence systems that think, adapt, and act—with a human always in the loop.
               </p>
-              <div className="flex items-center gap-4">
-                {["LinkedIn", "GitHub", "X"].map((name) => (
-                  <a
-                    key={name}
-                    href="#"
-                    className="text-xs font-sans font-medium text-muted-foreground hover:text-foreground transition-colors glass rounded-full px-3 py-1.5"
-                  >
-                    {name}
-                  </a>
-                ))}
-              </div>
             </div>
 
             {/* Services */}
@@ -68,16 +61,19 @@ const Footer = () => {
               <ul className="space-y-2.5">
                 {companyLinks.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.to}
                       className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
-              <button className="mt-6 text-sm font-sans font-medium bg-foreground text-primary-foreground rounded-full px-5 py-2 hover:opacity-90 transition-opacity">
+              <button
+                onClick={onScheduleCall}
+                className="mt-6 text-sm font-sans font-medium bg-foreground text-primary-foreground rounded-full px-5 py-2 hover:opacity-90 transition-opacity"
+              >
                 Schedule a Call
               </button>
             </div>
