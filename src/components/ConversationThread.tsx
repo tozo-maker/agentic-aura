@@ -1,21 +1,11 @@
 import { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import GenUIRenderer from "@/components/genui/GenUIRenderer";
+import InlineModuleCard from "@/components/genui/InlineModuleCard";
 import WizardCard from "@/components/wizard/WizardCard";
 import type { Msg } from "@/hooks/useAIChat";
 import type { ModuleDeployment } from "@/components/genui/parseModules";
-import { X, MessageCircle } from "lucide-react";
-
-const moduleLabels: Record<string, string> = {
-  service_spotlight: "Service Spotlight",
-  comparison_table: "Comparison",
-  roi_calculator: "ROI Calculator",
-  case_study: "Case Study",
-  timeline: "Timeline",
-  pricing_tier: "Pricing",
-  process_flow: "Process",
-};
+import { Sparkles } from "lucide-react";
 
 interface ConversationThreadProps {
   messages: Msg[];
@@ -50,68 +40,54 @@ const ConversationThread = ({
   return (
     <section className="relative py-8 px-4 noise-overlay">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Messages */}
         <AnimatePresence mode="popLayout">
           {visibleMessages.map((msg, i) => {
+            // Inline module message
             if (msg.role === "module" && msg.module) {
+              const deployedIdx = deployedModules.findIndex((d) => d.type === msg.module!.type);
+              if (deployedIdx === -1) return null;
+              const mod = deployedModules[deployedIdx];
+
               return (
                 <motion.div
                   key={`mod-inline-${i}`}
-                  initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  initial={{ opacity: 0, y: 20, filter: "blur(12px)", scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 28 }}
                   className="my-4"
                 >
-                  {/* Find corresponding deployed module to render */}
-                  {(() => {
-                    const deployedIdx = deployedModules.findIndex((d) => d.type === msg.module!.type);
-                    if (deployedIdx === -1) return null;
-                    const mod = deployedModules[deployedIdx];
-                    return (
-                      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-secondary/30">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-primary" />
-                            <span className="text-xs font-sans font-medium text-muted-foreground uppercase tracking-wider">
-                              {moduleLabels[mod.type] || mod.type}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => onSendMessage(`Tell me more about this ${moduleLabels[mod.type] || mod.type}`)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => onRemoveModule(deployedIdx)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="p-5">
-                          <GenUIRenderer deployment={mod} onAction={(msg) => onSendMessage(msg)} />
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <InlineModuleCard
+                    mod={mod}
+                    onRemove={() => onRemoveModule(deployedIdx)}
+                    onSendMessage={onSendMessage}
+                  />
                 </motion.div>
               );
             }
 
+            // Text message
             return (
               <motion.div
                 key={`msg-${i}`}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2`}
               >
+                {/* AI Avatar */}
+                {msg.role === "assistant" && (
+                  <motion.div
+                    className="w-7 h-7 rounded-full bg-foreground/10 flex items-center justify-center shrink-0 mt-1"
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-foreground/60" />
+                  </motion.div>
+                )}
+
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
                     msg.role === "user"
                       ? "bg-foreground text-primary-foreground rounded-br-sm"
                       : "bg-card border border-border text-foreground rounded-bl-sm shadow-sm"
@@ -125,44 +101,36 @@ const ConversationThread = ({
                     msg.content
                   )}
                 </div>
+
+                {/* User indicator */}
+                {msg.role === "user" && (
+                  <span className="text-[10px] font-sans text-muted-foreground/50 self-end mb-1 shrink-0">You</span>
+                )}
               </motion.div>
             );
           })}
         </AnimatePresence>
 
-        {/* Deployed modules not tied to messages (pre-loaded) */}
+        {/* Pre-loaded modules not tied to messages */}
         {deployedModules
           .filter((mod) => !visibleMessages.some((m) => m.module?.type === mod.type))
           .map((mod, i) => (
             <motion.div
               key={`preload-${mod.type}`}
-              initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              initial={{ opacity: 0, y: 20, filter: "blur(12px)", scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 28, delay: i * 0.1 }}
               className="my-4"
             >
-              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-secondary/30">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="text-xs font-sans font-medium text-muted-foreground uppercase tracking-wider">
-                      {moduleLabels[mod.type] || mod.type}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const idx = deployedModules.indexOf(mod);
-                      if (idx !== -1) onRemoveModule(idx);
-                    }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="p-5">
-                  <GenUIRenderer deployment={mod} onAction={(msg) => onSendMessage(msg)} />
-                </div>
-              </div>
+              <InlineModuleCard
+                mod={mod}
+                onRemove={() => {
+                  const idx = deployedModules.indexOf(mod);
+                  if (idx !== -1) onRemoveModule(idx);
+                }}
+                onSendMessage={onSendMessage}
+                showChat={false}
+              />
             </motion.div>
           ))}
 
@@ -179,38 +147,55 @@ const ConversationThread = ({
           </motion.div>
         )}
 
-        {/* Loading indicator */}
+        {/* Shimmer thinking indicator */}
         {isLoading && visibleMessages[visibleMessages.length - 1]?.role === "user" && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex justify-start"
+            className="flex items-start gap-2"
           >
-            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
+            <motion.div
+              className="w-7 h-7 rounded-full bg-foreground/10 flex items-center justify-center shrink-0"
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-foreground/60" />
+            </motion.div>
+            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm overflow-hidden flex-1 max-w-[80%]">
+              <motion.div
+                className="h-3 rounded-full bg-gradient-to-r from-muted via-muted-foreground/20 to-muted"
+                animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                style={{ backgroundSize: "200% 100%" }}
+              />
+              <motion.div
+                className="h-3 rounded-full bg-gradient-to-r from-muted via-muted-foreground/20 to-muted mt-2 w-2/3"
+                animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.2 }}
+                style={{ backgroundSize: "200% 100%" }}
+              />
             </div>
           </motion.div>
         )}
 
-        {/* Suggestion chips */}
+        {/* Suggestion chips with staggered animation */}
         {suggestions.length > 0 && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap gap-2 pt-2"
-          >
-            {suggestions.map((s) => (
-              <button
+          <div className="flex flex-wrap gap-2 pt-2">
+            {suggestions.map((s, i) => (
+              <motion.button
                 key={s}
+                initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: i * 0.08, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => onSendMessage(s)}
                 className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm"
               >
                 {s}
-              </button>
+              </motion.button>
             ))}
-          </motion.div>
+          </div>
         )}
 
         {/* Spacer for sticky input bar */}

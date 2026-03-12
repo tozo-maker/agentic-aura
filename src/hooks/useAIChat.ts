@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useWizard } from "@/components/wizard/WizardProvider";
-import { parseModuleDeployments, parseSuggestions, type ModuleDeployment } from "@/components/genui/parseModules";
+import { type ModuleDeployment } from "@/components/genui/parseModules";
+import { getStoredSession, storeSession, isSessionExpired, trackAnalytics } from "./useSession";
+import { streamChat, parseFieldUpdates } from "./useStreamChat";
+import { parseModuleDeployments, parseSuggestions } from "@/components/genui/parseModules";
 
 export type Msg = {
   role: "user" | "assistant" | "module";
@@ -9,49 +12,6 @@ export type Msg = {
   module?: ModuleDeployment;
 };
 
-function parseFieldUpdates(text: string): { clean: string; updates: Record<string, string> } {
-  const updates: Record<string, string> = {};
-  let clean = text.replace(/\[FIELD_UPDATE:(\w+)=([^\]]+)\]/g, (_, k, v) => {
-    updates[k] = v;
-    return "";
-  });
-  const incompleteIdx = clean.lastIndexOf("[FIELD_UPDATE:");
-  if (incompleteIdx !== -1) {
-    const afterMarker = clean.slice(incompleteIdx);
-    if (!afterMarker.match(/\[FIELD_UPDATE:\w+=([^\]]+)\]/)) {
-      clean = clean.slice(0, incompleteIdx);
-    }
-  }
-  return { clean: clean.trim(), updates };
-}
-
-const SESSION_KEY = "nexus_chat_sessionId";
-const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-function getStoredSession(): { sessionId: string; timestamp: number } | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
-
-function storeSession(sessionId: string) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, timestamp: Date.now() }));
-}
-
-function trackAnalytics(sessionId: string, eventType: string, moduleType?: string, metadata?: Record<string, any>) {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat?analytics=true`;
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
-    body: JSON.stringify({ sessionId, eventType, moduleType, metadata }),
-  }).catch(() => {});
-}
-
 const INITIAL_MSG: Msg = {
   role: "assistant",
   content: "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?",
@@ -59,10 +19,10 @@ const INITIAL_MSG: Msg = {
 
 export function useAIChat(onActiveService?: (service: string | null) => void) {
   const stored = getStoredSession();
-  const isExpired = stored ? (Date.now() - stored.timestamp > SESSION_EXPIRY_MS) : true;
+  const expired = isSessionExpired(stored);
 
   const [sessionId] = useState(() => {
-    if (stored && !isExpired) return stored.sessionId;
+    if (stored && !expired) return stored.sessionId;
     const id = crypto.randomUUID();
     storeSession(id);
     return id;
@@ -82,9 +42,8 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     if (historyLoaded) return;
     setHistoryLoaded(true);
 
-    if (!stored || isExpired) {
-      if (stored && isExpired) {
-        // Expired session — offer to continue as a suggestion
+    if (!stored || expired) {
+      if (stored && expired) {
         setSuggestions(["Continue previous conversation", "Start fresh"]);
       }
       return;
@@ -103,7 +62,6 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
 
         for (const msg of history) {
           if (msg.role === "assistant") {
-            // Re-parse modules from stored assistant messages
             const { clean: afterFields } = parseFieldUpdates(msg.content);
             const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
             const { clean, suggestions: s } = parseSuggestions(afterModules);
@@ -120,7 +78,6 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
             );
             if (s.length > 0) setSuggestions(s);
           } else {
-            // Skip hidden wizard messages
             if (msg.content.startsWith("[WIZARD_")) continue;
             restored.push({ role: "user", content: msg.content });
           }
@@ -137,8 +94,6 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
   const sendMessage = useCallback(async (text: string, hidden = false) => {
     if (!text.trim() || isLoading) return;
     setSuggestions([]);
-
-    // Update stored session timestamp
     storeSession(sessionId);
 
     const userMsg: Msg = { role: "user", content: text.trim(), hidden };
@@ -158,103 +113,46 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
       : undefined;
 
     try {
-      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
       const allMessages = [...messages, userMsg]
         .filter((m) => !m.hidden || m === userMsg)
         .map(({ role, content }) => ({ role: role === "module" ? "assistant" : role, content }));
 
-      const resp = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ messages: allMessages, sessionId, wizardContext }),
-      });
+      const streamModulesRef: ModuleDeployment[] = [];
 
-      if (!resp.ok || !resp.body) throw new Error("Stream failed");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let assistantSoFar = "";
-      let streamDone = false;
-      const streamModules: ModuleDeployment[] = [];
-
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") { streamDone = true; break; }
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantSoFar += content;
-
-              const { clean: afterFields, updates } = parseFieldUpdates(assistantSoFar);
-              Object.entries(updates).forEach(([k, v]) => wizard.updateField(k, v));
-
-              const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
-              modules.forEach((m) => {
-                const existingIdx = streamModules.findIndex((d) => d.type === m.type);
-                if (existingIdx !== -1) streamModules[existingIdx] = m;
-                else streamModules.push(m);
-              });
-
-              if (modules.length > 0 && modules[0].data?.serviceId) {
-                onActiveService?.(modules[0].data.serviceId);
-              }
-
-              const { clean, suggestions: parsedSuggestions } = parseSuggestions(afterModules);
-              if (parsedSuggestions.length > 0) {
-                setSuggestions(parsedSuggestions);
-              }
-
-              setDeployedModules((prev) => {
-                const updated = prev.filter((p) => !streamModules.some((sm) => sm.type === p.type));
-                return [...streamModules, ...updated];
-              });
-
-              const snapshot = clean;
-              setMessages((prev) => {
-                const withoutStreamModules = prev.filter((m) => !(m.role === "module" && m.hidden));
-                const last = withoutStreamModules[withoutStreamModules.length - 1];
-                let updated: Msg[];
-                if (last?.role === "assistant" && withoutStreamModules.length > 1) {
-                  updated = withoutStreamModules.map((m, i) =>
-                    i === withoutStreamModules.length - 1 ? { ...m, content: snapshot } : m
-                  );
-                } else {
-                  updated = [...withoutStreamModules, { role: "assistant", content: snapshot }];
-                }
-                const moduleMessages: Msg[] = streamModules.map((mod) => ({
-                  role: "module" as const,
-                  content: "",
-                  hidden: true,
-                  module: mod,
-                }));
-                return [...updated, ...moduleMessages];
-              });
+      await streamChat(allMessages, sessionId, wizardContext, {
+        onText: (snapshot) => {
+          setMessages((prev) => {
+            const withoutStreamModules = prev.filter((m) => !(m.role === "module" && m.hidden));
+            const last = withoutStreamModules[withoutStreamModules.length - 1];
+            let updated: Msg[];
+            if (last?.role === "assistant" && withoutStreamModules.length > 1) {
+              updated = withoutStreamModules.map((m, i) =>
+                i === withoutStreamModules.length - 1 ? { ...m, content: snapshot } : m
+              );
+            } else {
+              updated = [...withoutStreamModules, { role: "assistant", content: snapshot }];
             }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
-      }
+            const moduleMessages: Msg[] = streamModulesRef.map((mod) => ({
+              role: "module" as const,
+              content: "",
+              hidden: true,
+              module: mod,
+            }));
+            return [...updated, ...moduleMessages];
+          });
+        },
+        onModules: (modules) => {
+          streamModulesRef.length = 0;
+          streamModulesRef.push(...modules);
+          setDeployedModules((prev) => {
+            const updated = prev.filter((p) => !modules.some((sm) => sm.type === p.type));
+            return [...modules, ...updated];
+          });
+        },
+        onSuggestions: (s) => setSuggestions(s),
+        onFieldUpdate: (k, v) => wizard.updateField(k, v),
+        onActiveService: (serviceId) => onActiveService?.(serviceId),
+      });
     } catch {
       setMessages((prev) => [
         ...prev,

@@ -25,6 +25,7 @@ const VoiceToggle = ({ onTranscript, disabled }: VoiceToggleProps) => {
 
   const start = useCallback(() => {
     if (!SpeechRecognitionAPI) return;
+    recRef.current?.stop();
     const rec = new SpeechRecognitionAPI();
     rec.continuous = true;
     rec.interimResults = true;

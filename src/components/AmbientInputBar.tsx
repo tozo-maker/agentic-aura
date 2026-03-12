@@ -172,6 +172,12 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: Ambie
               <kbd className="ml-auto text-[10px] text-muted-foreground/40 font-mono">/</kbd>
             </div>
           )}
+
+          {/* Privacy consent notice */}
+          <p className="text-[9px] font-sans text-muted-foreground/40 text-center mt-2 px-1">
+            By chatting, you agree to our{" "}
+            <a href="/privacy" className="underline hover:text-muted-foreground transition-colors">Privacy Policy</a>
+          </p>
         </motion.div>
       </div>
     </div>
