@@ -89,7 +89,6 @@ const IndexInner = () => {
 
   const chat = useAIChat((service) => setActiveService(service));
 
-  // Whether the user has started a conversation (sent at least one message)
   const hasConversation = chat.messages.length > 1 || chat.deployedModules.length > 0;
 
   const handleSendMessage = useCallback((text: string, serviceId?: string) => {
@@ -98,11 +97,14 @@ const IndexInner = () => {
       chat.preloadModule(type, data);
     }
     chat.sendMessage(text);
-    // Scroll to thread after a tick
     setTimeout(() => {
       threadRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   }, [chat]);
+
+  const handleScheduleCall = useCallback(() => {
+    handleSendMessage("I'd like to schedule a call with a human expert");
+  }, [handleSendMessage]);
 
   useEffect(() => {
     if (activeService) {
@@ -116,7 +118,7 @@ const IndexInner = () => {
       <Navbar />
 
       <main>
-        {/* Hero — compresses when conversation is active */}
+        {/* Hero — smoothly compresses with layout animation */}
         <AnimatePresence mode="wait">
           {!hasConversation ? (
             <motion.div
@@ -132,8 +134,9 @@ const IndexInner = () => {
           ) : (
             <motion.div
               key="hero-compact"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="pt-20 pb-4 px-6 text-center"
             >
               <h2 className="text-2xl md:text-3xl font-serif font-semibold text-foreground">
@@ -163,10 +166,19 @@ const IndexInner = () => {
           </div>
         )}
 
-        {/* Marketing sections — still visible below, fade when conversation active */}
+        {/* Marketing sections — depth-of-field effect when conversation active */}
         <motion.div
-          animate={{ opacity: hasConversation ? 0.6 : 1 }}
-          transition={{ duration: 0.5 }}
+          animate={hasConversation ? {
+            opacity: 0.5,
+            filter: "blur(2px)",
+            scale: 0.98,
+          } : {
+            opacity: 1,
+            filter: "blur(0px)",
+            scale: 1,
+          }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: "top center" }}
         >
           <BentoGrid
             ref={servicesRef}
@@ -175,7 +187,7 @@ const IndexInner = () => {
           />
           <Testimonials />
           <TrustProtocol />
-          <Footer />
+          <Footer onScheduleCall={handleScheduleCall} />
         </motion.div>
       </main>
 
