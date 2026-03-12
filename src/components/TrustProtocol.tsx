@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, ShieldCheck, Eye, Lock, Accessibility } from "lucide-react";
+import { Zap, ShieldCheck, Eye, Lock } from "lucide-react";
 
 const modes = {
   ai: {
