@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { useWizard } from "@/components/wizard/WizardProvider";
 import { type ModuleDeployment } from "@/components/genui/parseModules";
 import { getStoredSession, storeSession, isSessionExpired, trackAnalytics } from "./useSession";
-import { streamChat, parseFieldUpdates } from "./useStreamChat";
-import { parseModuleDeployments, parseSuggestions } from "@/components/genui/parseModules";
 
 export type Msg = {
   role: "user" | "assistant" | "module";
@@ -12,10 +12,27 @@ export type Msg = {
   module?: ModuleDeployment;
 };
 
-const INITIAL_MSG: Msg = {
-  role: "assistant",
-  content: "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?",
-};
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+export const MODULE_TOOLS = [
+  "service_spotlight",
+  "comparison_table",
+  "roi_calculator",
+  "case_study",
+  "timeline",
+  "pricing_tier",
+  "process_flow",
+] as const;
+
+const GREETING = "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?";
+
+const INITIAL_MESSAGES: UIMessage[] = [
+  { id: "greeting", role: "assistant", parts: [{ type: "text", text: GREETING }] },
+];
+
+type AnyPart = { type: string; text?: string; input?: unknown; state?: string };
+
+const toolNameOf = (part: AnyPart) => (part.type.startsWith("tool-") ? part.type.slice(5) : null);
 
 export function useAIChat(onActiveService?: (service: string | null) => void) {
   const stored = getStoredSession();
@@ -28,164 +45,196 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     return id;
   });
 
-  const [messages, setMessages] = useState<Msg[]>([INITIAL_MSG]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [deployedModules, setDeployedModules] = useState<ModuleDeployment[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [removedModules, setRemovedModules] = useState<string[]>([]);
+  const [preloaded, setPreloaded] = useState<ModuleDeployment[]>([]);
+  const [expiredNotice, setExpiredNotice] = useState<string[]>([]);
   const hasStartedWizard = useRef(false);
   const wizard = useWizard();
 
-  // Load conversation history on mount
+  // Keep the freshest wizard context available to the transport without recreating it.
+  const wizardContextRef = useRef<unknown>(undefined);
+  wizardContextRef.current = wizard.schema
+    ? {
+        wizardId: wizard.schema.id,
+        currentStep: wizard.schema.steps[wizard.stepIndex],
+        stepIndex: wizard.stepIndex,
+        totalSteps: wizard.schema.steps.length,
+        collectedData: wizard.data,
+        allFields: wizard.schema.steps.flatMap((s: { fields: { id: string }[] }) => s.fields.map((f) => f.id)),
+      }
+    : undefined;
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: CHAT_URL,
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        prepareSendMessagesRequest: ({ messages }) => ({
+          body: { messages, sessionId, wizardContext: wizardContextRef.current },
+        }),
+      }),
+    [sessionId],
+  );
+
+  const { messages: uiMessages, sendMessage: sdkSend, setMessages, status, error } = useChat({
+    id: sessionId,
+    messages: INITIAL_MESSAGES,
+    transport,
+  });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  // ---- Load previous conversation -------------------------------------------------
+  const historyLoaded = useRef(false);
   useEffect(() => {
-    if (historyLoaded) return;
-    setHistoryLoaded(true);
+    if (historyLoaded.current) return;
+    historyLoaded.current = true;
 
     if (!stored || expired) {
-      if (stored && expired) {
-        setSuggestions(["Continue previous conversation", "Start fresh"]);
-      }
+      if (stored && expired) setExpiredNotice(["Continue previous conversation", "Start fresh"]);
       return;
     }
 
-    const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat?history=true&sessionId=${encodeURIComponent(stored.sessionId)}`;
-    fetch(CHAT_URL, {
+    fetch(`${CHAT_URL}?history=true&sessionId=${encodeURIComponent(stored.sessionId)}`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
     })
       .then((r) => r.json())
-      .then(({ messages: history }) => {
-        if (!history || history.length === 0) return;
-
-        const restored: Msg[] = [];
-        const restoredModules: ModuleDeployment[] = [];
-
-        for (const msg of history) {
-          if (msg.role === "assistant") {
-            const { clean: afterFields } = parseFieldUpdates(msg.content);
-            const { clean: afterModules, modules } = parseModuleDeployments(afterFields);
-            const { clean, suggestions: s } = parseSuggestions(afterModules);
-
-            modules.forEach((m) => {
-              const idx = restoredModules.findIndex((d) => d.type === m.type);
-              if (idx !== -1) restoredModules[idx] = m;
-              else restoredModules.push(m);
-            });
-
-            restored.push({ role: "assistant", content: clean });
-            modules.forEach((mod) =>
-              restored.push({ role: "module", content: "", hidden: true, module: mod })
-            );
-            if (s.length > 0) setSuggestions(s);
-          } else {
-            if (msg.content.startsWith("[WIZARD_")) continue;
-            restored.push({ role: "user", content: msg.content });
+      .then(({ messages: history }: { messages?: Array<{ role: string; content: string }> }) => {
+        if (!history?.length) return;
+        const restored: UIMessage[] = history.map((row, i) => {
+          if (row.role === "assistant") {
+            let parts: AnyPart[];
+            try {
+              const parsed = JSON.parse(row.content);
+              parts = Array.isArray(parsed) ? parsed : [{ type: "text", text: row.content }];
+            } catch {
+              parts = [{ type: "text", text: row.content }];
+            }
+            return { id: `hist-${i}`, role: "assistant", parts } as UIMessage;
           }
-        }
-
-        if (restored.length > 0) {
-          setMessages(restored);
-          setDeployedModules(restoredModules);
-        }
+          return {
+            id: `hist-${i}`,
+            role: "user",
+            parts: [{ type: "text", text: row.content }],
+          } as UIMessage;
+        });
+        setMessages(restored);
       })
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sendMessage = useCallback(async (text: string, hidden = false) => {
-    if (!text.trim() || isLoading) return;
-    setSuggestions([]);
-    storeSession(sessionId);
+  // ---- Derive view models from AI SDK messages ------------------------------------
+  const { messages, deployedModules, suggestions } = useMemo(() => {
+    const msgs: Msg[] = [];
+    const modulesByType = new Map<string, ModuleDeployment>();
+    const order: string[] = [];
+    let latestSuggestions: string[] = [];
 
-    const userMsg: Msg = { role: "user", content: text.trim(), hidden };
-    setInput("");
-    setMessages((prev) => [...prev, userMsg]);
-    setIsLoading(true);
+    for (const m of uiMessages) {
+      const parts = (m.parts ?? []) as AnyPart[];
+      const text = parts.filter((p) => p.type === "text").map((p) => p.text ?? "").join("");
 
-    const wizardContext = wizard.schema
-      ? {
-          wizardId: wizard.schema.id,
-          currentStep: wizard.schema.steps[wizard.stepIndex],
-          stepIndex: wizard.stepIndex,
-          totalSteps: wizard.schema.steps.length,
-          collectedData: wizard.data,
-          allFields: wizard.schema.steps.flatMap((s) => s.fields.map((f) => f.id)),
+      if (m.role === "user") {
+        if (text.trim()) msgs.push({ role: "user", content: text });
+        continue;
+      }
+
+      if (text.trim()) msgs.push({ role: "assistant", content: text });
+
+      for (const part of parts) {
+        const name = toolNameOf(part);
+        if (!name || part.input == null) continue;
+
+        if (name === "suggest_replies") {
+          const s = (part.input as { suggestions?: string[] }).suggestions;
+          if (Array.isArray(s)) latestSuggestions = s;
+        } else if ((MODULE_TOOLS as readonly string[]).includes(name)) {
+          const mod: ModuleDeployment = { type: name, data: part.input as Record<string, unknown> };
+          modulesByType.set(name, mod);
+          if (!order.includes(name)) order.push(name);
+          msgs.push({ role: "module", content: "", hidden: true, module: mod });
         }
-      : undefined;
-
-    try {
-      const allMessages = [...messages, userMsg]
-        .filter((m) => !m.hidden || m === userMsg)
-        .map(({ role, content }) => ({ role: role === "module" ? "assistant" : role, content }));
-
-      const streamModulesRef: ModuleDeployment[] = [];
-
-      await streamChat(allMessages, sessionId, wizardContext, {
-        onText: (snapshot) => {
-          setMessages((prev) => {
-            const withoutStreamModules = prev.filter((m) => !(m.role === "module" && m.hidden));
-            const last = withoutStreamModules[withoutStreamModules.length - 1];
-            let updated: Msg[];
-            if (last?.role === "assistant" && withoutStreamModules.length > 1) {
-              updated = withoutStreamModules.map((m, i) =>
-                i === withoutStreamModules.length - 1 ? { ...m, content: snapshot } : m
-              );
-            } else {
-              updated = [...withoutStreamModules, { role: "assistant", content: snapshot }];
-            }
-            const moduleMessages: Msg[] = streamModulesRef.map((mod) => ({
-              role: "module" as const,
-              content: "",
-              hidden: true,
-              module: mod,
-            }));
-            return [...updated, ...moduleMessages];
-          });
-        },
-        onModules: (modules) => {
-          streamModulesRef.length = 0;
-          streamModulesRef.push(...modules);
-          setDeployedModules((prev) => {
-            const updated = prev.filter((p) => !modules.some((sm) => sm.type === p.type));
-            return [...modules, ...updated];
-          });
-        },
-        onSuggestions: (s) => setSuggestions(s),
-        onFieldUpdate: (k, v) => wizard.updateField(k, v),
-        onActiveService: (serviceId) => onActiveService?.(serviceId),
-      });
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "I'm having trouble connecting right now. Please try again." },
-      ]);
-    } finally {
-      setIsLoading(false);
+      }
     }
-  }, [messages, isLoading, sessionId, wizard, onActiveService]);
+
+    const live = order
+      .filter((t) => !removedModules.includes(t))
+      .map((t) => modulesByType.get(t)!)
+      .reverse();
+
+    const extras = preloaded.filter((p) => !modulesByType.has(p.type) && !removedModules.includes(p.type));
+
+    return {
+      messages: msgs.filter((m) => m.role !== "module" || !removedModules.includes(m.module!.type)),
+      deployedModules: [...extras, ...live],
+      suggestions: isLoading ? [] : latestSuggestions.length ? latestSuggestions : expiredNotice,
+    };
+  }, [uiMessages, removedModules, preloaded, expiredNotice, isLoading]);
+
+  // ---- Wizard field sync from tool calls -------------------------------------------
+  const appliedFields = useRef(new Set<string>());
+  useEffect(() => {
+    for (const m of uiMessages) {
+      for (const part of (m.parts ?? []) as AnyPart[]) {
+        if (toolNameOf(part) !== "update_wizard_fields" || !part.input) continue;
+        const fields = (part.input as { fields?: Array<{ id: string; value: string }> }).fields ?? [];
+        for (const f of fields) {
+          const key = `${m.id}:${f.id}:${f.value}`;
+          if (appliedFields.current.has(key)) continue;
+          appliedFields.current.add(key);
+          wizard.updateField(f.id, f.value);
+        }
+      }
+    }
+  }, [uiMessages, wizard]);
+
+  // ---- Active service highlight -----------------------------------------------------
+  useEffect(() => {
+    const spotlight = [...uiMessages]
+      .reverse()
+      .flatMap((m) => (m.parts ?? []) as AnyPart[])
+      .find((p) => toolNameOf(p) === "service_spotlight");
+    const serviceId = (spotlight?.input as { serviceId?: string } | undefined)?.serviceId ?? null;
+    onActiveService?.(serviceId);
+  }, [uiMessages, onActiveService]);
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isLoading) return;
+      setExpiredNotice([]);
+      storeSession(sessionId);
+      setInput("");
+      await sdkSend({ text: text.trim() });
+    },
+    [isLoading, sdkSend, sessionId],
+  );
 
   const send = () => sendMessage(input);
 
   const handleWizardStepSubmit = (stepData: Record<string, string>) => {
     const summary = Object.entries(stepData).map(([k, v]) => `${k}: ${v}`).join(", ");
-    if (summary) sendMessage(`[WIZARD_UPDATE] ${summary}`, true);
+    if (summary) sendMessage(`Here are my details — ${summary}`);
   };
 
   const handleWizardComplete = async () => {
     await wizard.completeWizard(sessionId);
-    sendMessage("[WIZARD_COMPLETE] All information has been collected. Please provide a summary.", true);
+    sendMessage("That's everything. Please summarise what you've captured and suggest next steps.");
   };
 
   const removeDeployedModule = (index: number) => {
-    setDeployedModules((prev) => prev.filter((_, i) => i !== index));
+    const mod = deployedModules[index];
+    if (mod) setRemovedModules((prev) => [...prev, mod.type]);
   };
 
-  const preloadModule = useCallback((type: string, data: Record<string, any>) => {
-    setDeployedModules((prev) => {
-      const filtered = prev.filter((m) => m.type !== type);
-      return [{ type, data }, ...filtered];
-    });
-    trackAnalytics(sessionId, "module_preloaded", type);
-  }, [sessionId]);
+  const preloadModule = useCallback(
+    (type: string, data: Record<string, any>) => {
+      setRemovedModules((prev) => prev.filter((t) => t !== type));
+      setPreloaded((prev) => [{ type, data }, ...prev.filter((m) => m.type !== type)]);
+      trackAnalytics(sessionId, "module_preloaded", type);
+    },
+    [sessionId],
+  );
 
   return {
     sessionId,
@@ -193,6 +242,8 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     input,
     setInput,
     isLoading,
+    status,
+    error,
     deployedModules,
     suggestions,
     sendMessage,
