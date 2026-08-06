@@ -93,7 +93,7 @@ const ConversationThread = ({
                       <MessageResponse>{msg.content}</MessageResponse>
                     </MessageContent>
                   ) : (
-                    <MessageContent className="bg-foreground text-primary-foreground rounded-2xl rounded-br-sm px-4 py-3 text-sm font-sans leading-relaxed">
+                    <MessageContent className="group-[.is-user]:bg-foreground group-[.is-user]:text-primary-foreground group-[.is-user]:rounded-2xl group-[.is-user]:rounded-br-sm text-sm font-sans leading-relaxed">
                       {msg.content}
                     </MessageContent>
                   )}

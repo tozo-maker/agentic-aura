@@ -162,6 +162,7 @@ const IndexInner = () => {
               onWizardStepSubmit={chat.handleWizardStepSubmit}
               onWizardComplete={chat.handleWizardComplete}
               suggestions={chat.suggestions}
+              error={chat.error as Error | null}
             />
           </div>
         )}
