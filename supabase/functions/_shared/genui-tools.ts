@@ -1,4 +1,4 @@
-import { z } from "npm:zod@3.23.8";
+import { z } from "npm:zod@4";
 import { tool } from "npm:ai@7";
 
 /**
