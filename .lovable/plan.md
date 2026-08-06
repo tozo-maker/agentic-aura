@@ -1,191 +1,55 @@
+# Nexus AI — Engine + Chat Experience Upgrade
 
+A single-pass modernization of the AI layer and the conversation surface, with the visual direction chosen from rendered options before building.
 
-# Comprehensive Enrichment Plan
+## What's limiting the app today
 
-## Overview
+- The chat runs on a hand-written streaming reader that parses the model's raw text for markers like `[DEPLOY_MODULE:...]`, `[SUGGESTIONS:...]` and `[FIELD_UPDATE:...]`. Half-streamed markers must be repaired with regex, malformed JSON silently drops a module, and modules are de-duplicated by type so the same module can't appear twice in a conversation.
+- Assistant text is rendered as plain text — no markdown, so lists, bold and links show as raw characters.
+- There is no stop/cancel while the model is answering, no retry, and no visible reasoning.
+- Errors are collapsed into one generic "I'm having trouble connecting" line; the backend's 429 (rate limit) and 402 (credits) responses never reach the user as distinct messages.
+- The model is a preview-generation Gemini; lead extraction runs a second full-conversation call on every turn from message four onward.
+- The public chat endpoint has no per-session rate limiting.
 
-This plan transforms the current single-page storefront from a functional prototype into a polished, conversion-optimized experience. It addresses three pillars: **visual refinement**, **content depth & social proof**, and **conversion-oriented UX flow**.
+## The upgrade
 
----
+### 1. AI engine
 
-## 1. Sticky Navigation Bar
+- Rebuild the chat edge function on the AI SDK (`streamText`) with the Lovable AI Gateway provider instead of hand-rolled `fetch` + SSE parsing.
+- Move to `google/gemini-3.6-flash`, with reasoning enabled and streamed as a collapsible "thinking" section.
+- Replace text markers with **tool calling**. Each GenUI module (`service_spotlight`, `comparison_table`, `roi_calculator`, `case_study`, `timeline`, `pricing_tier`, `process_flow`) becomes a typed tool with a Zod input schema, plus tools for quick-reply suggestions and wizard field updates. Modules arrive as structured data, so no regex, no half-parsed JSON, no marker leakage into visible text.
+- Lead extraction becomes a tool the model calls when it actually learns something, instead of a second full-conversation call every turn.
+- Per-session rate limiting and Zod validation on the edge function; explicit 429/402/validation responses surfaced in the UI.
 
-**Problem**: No persistent navigation. Users land on the hero and have no way to jump between sections or see the brand while scrolling.
+### 2. Chat UI/UX
 
-**Solution**: Add a `Navbar` component that:
-- Is transparent on the hero, gains a glass backdrop on scroll (scroll-triggered)
-- Contains the Nexus AI wordmark (left), section links (center: Services, How We Work, Results), and a CTA button (right: "Talk to Our Agent")
-- Collapses to a hamburger menu on mobile
-- Uses `framer-motion` for smooth glass transition on scroll
+- Rebuild the transcript on AI Elements (`Conversation`, `Message`, `PromptInput`, `Tool`, `Shimmer`) instead of the current custom thread.
+- Markdown rendering for assistant text.
+- Streaming states: shimmer "Thinking…", live reasoning, per-module skeletons while a tool runs.
+- Stop / cancel mid-stream, retry on a failed turn, copy on any message.
+- Modules render inline in the thread as tool output, can repeat, and each one keeps its own state.
+- Keyboard and focus behaviour: composer stays focused after send and after stream completion.
+- Mobile: full-height canvas, safe-area-aware composer, modules scaled for narrow screens.
 
-**File**: `src/components/Navbar.tsx` (new), `src/pages/Index.tsx` (add Navbar)
+### 3. Visual direction
 
----
+Before building the UI, I'll capture the current chat canvas and generate three rendered design directions for it — same brand palette and typography (Bone/Charcoal, Playfair + Inter), varying in composition, density and motion. You pick one, and that direction's tokens and layout are implemented verbatim.
 
-## 2. Animated Stats / Social Proof Section
+### 4. Codebase
 
-**Problem**: No credibility signals. Visitors see claims but no numbers or logos.
+- Typed contracts shared between the edge function and the client (module payloads, tool names) replacing `any` wizard context and string parsing.
+- `useAIChat` / `useStreamChat` / `parseModules` collapse into the AI SDK `useChat` transport; the marker parsers are removed.
+- Existing session history keeps loading — stored transcripts are converted to the new message shape on read, so nothing already captured is lost.
+- Vitest coverage on the tool schemas and history conversion.
 
-**Solution**: Add a `SocialProof` section between the Hero and Bento Grid with:
-- **Animated counters** (count-up on scroll): "200+ Automations Deployed", "98% Uptime SLA", "40% Avg Cost Reduction", "$12M+ Revenue Automated"
-- **Client logo strip**: A subtle, horizontally scrolling marquee of placeholder client logos (glassmorphic pill shapes with company initials)
-- Uses `whileInView` for triggering count-up animations
+## Technical notes
 
-**File**: `src/components/SocialProof.tsx` (new), `src/pages/Index.tsx` (insert between Hero and BentoGrid)
+- Packages added: `ai`, `@ai-sdk/openai-compatible`, `@ai-sdk/react`, `react-markdown`, plus AI Elements components via the shadcn registry.
+- `supabase/functions/chat/index.ts` is rewritten; the `history` and `analytics` query-param endpoints stay at the same URLs.
+- Database schema is unchanged. `chat_messages` gains structured parts stored in the existing `content` column as before, with module data serialized alongside the text.
+- MCP tools (`list_leads`, `get_lead`, `list_recent_analytics`) are unaffected.
 
----
+## Not included
 
-## 3. Bento Grid Enhancements
-
-**Problem**: Service cards are informational but passive -- no CTA, no hover depth.
-
-**Solution**:
-- Add a "Learn more" hover state that reveals a small arrow + triggers the AI chat with that service context on click
-- Add a subtle icon animation on hover (slight rotation or bounce)
-- Improve the active-service glow with a pulsing ring animation instead of a static shadow
-
-**File**: `src/components/BentoGrid.tsx` (modify)
-
----
-
-## 4. Testimonials / Results Section
-
-**Problem**: No social proof from real customers. The Trust Protocol explains the process but not the outcomes.
-
-**Solution**: Add a `Testimonials` section after the Bento Grid with:
-- 3 glassmorphic testimonial cards with quote, name, role, and a metric badge (e.g., "92% faster")
-- Carousel on mobile (using existing `embla-carousel-react` dependency)
-- Static 3-column grid on desktop
-- Placeholder data that matches the brand voice
-
-**File**: `src/components/Testimonials.tsx` (new), `src/pages/Index.tsx` (insert after BentoGrid)
-
----
-
-## 5. Scroll-Reveal Animations
-
-**Problem**: Sections appear abruptly. The BentoGrid has `whileInView` but the Hero and Trust Protocol sections are static after initial load.
-
-**Solution**: Add staggered `whileInView` animations to:
-- The Trust Protocol badges (stagger in from below)
-- The Footer links (fade in)
-- All section headings (slide up + fade)
-- Implement a reusable `RevealOnScroll` wrapper component for consistency
-
-**File**: `src/components/RevealOnScroll.tsx` (new), modify `TrustProtocol.tsx`, `Footer.tsx`
-
----
-
-## 6. Enhanced Footer
-
-**Problem**: Footer is minimal -- just copyright and two links.
-
-**Solution**: Expand to a proper 3-column footer:
-- **Column 1**: Nexus AI wordmark + one-line tagline + social icons (LinkedIn, GitHub, X)
-- **Column 2**: "Services" links (matching Bento Grid categories) that scroll to the grid
-- **Column 3**: "Company" links (Privacy, Terms, Contact) + "Schedule a Call" CTA
-- Bottom bar: copyright + "Built with hybrid intelligence"
-
-**File**: `src/components/Footer.tsx` (modify)
-
----
-
-## 7. Dark Mode Support
-
-**Problem**: No dark mode. The warm bone palette is beautiful but some users prefer dark interfaces.
-
-**Solution**:
-- Add dark mode CSS variables to `index.css` (deep charcoal/slate palette that preserves the warm aesthetic)
-- Add a theme toggle button in the Navbar (sun/moon icon)
-- Use the existing `next-themes` dependency (already installed) for persistence
-- Wrap `App.tsx` with `ThemeProvider`
-- Ensure `glass` utility adapts to dark mode
-
-**File**: `src/index.css` (add dark vars), `src/components/Navbar.tsx` (toggle button), `src/App.tsx` (ThemeProvider), `tailwind.config.ts` (ensure darkMode class works)
-
----
-
-## 8. Mobile Responsiveness Polish
-
-**Problem**: The page is responsive but the chat panel and OmniBar may feel cramped on small screens.
-
-**Solution**:
-- Make the AI chat panel full-width on mobile (below 640px) with a slide-up sheet animation
-- Ensure the OmniBar is full-width on mobile with proper safe-area padding
-- Test and fix any text overflow in GenUI modules on small screens
-
-**File**: `src/components/AIChat.tsx` (responsive classes), `src/components/OmniBar.tsx` (responsive classes)
-
----
-
-## 9. Loading & Transition States
-
-**Problem**: No loading skeleton or transition when the page first loads.
-
-**Solution**:
-- Add a brief page-level entrance animation (fade in + subtle scale) on mount
-- Add skeleton loading states for the Bento Grid cards (shimmer effect) if they were data-driven
-- Add a smooth page transition wrapper
-
-**File**: `src/pages/Index.tsx` (page entrance motion)
-
----
-
-## 10. SEO & Meta Tags
-
-**Problem**: No meta tags, Open Graph, or structured data.
-
-**Solution**:
-- Update `index.html` with proper `<title>`, `<meta description>`, Open Graph tags, and Twitter card tags
-- Add JSON-LD structured data for the organization
-
-**File**: `index.html` (modify)
-
----
-
-## Section Order (Final Page Structure)
-
-```text
-+----------------------------+
-|  Navbar (sticky, glass)    |
-+----------------------------+
-|  Hero Section              |
-+----------------------------+
-|  Social Proof (stats +     |
-|  logo marquee)             |
-+----------------------------+
-|  Bento Grid (services)     |
-+----------------------------+
-|  Testimonials (3 cards)    |
-+----------------------------+
-|  Trust Protocol (toggle)   |
-+----------------------------+
-|  Footer (3-column)         |
-+----------------------------+
-|  AI Chat FAB + Panel       |
-+----------------------------+
-```
-
----
-
-## Files Summary
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/Navbar.tsx` | Create | Sticky glass navbar with scroll effect + theme toggle |
-| `src/components/SocialProof.tsx` | Create | Animated counters + logo marquee |
-| `src/components/Testimonials.tsx` | Create | 3-card testimonial section with carousel on mobile |
-| `src/components/RevealOnScroll.tsx` | Create | Reusable scroll-reveal animation wrapper |
-| `src/components/BentoGrid.tsx` | Modify | Interactive hover states, click-to-chat, improved glow |
-| `src/components/Footer.tsx` | Modify | 3-column layout with services links + social icons |
-| `src/components/TrustProtocol.tsx` | Modify | Staggered badge reveal animations |
-| `src/components/AIChat.tsx` | Modify | Full-width mobile layout |
-| `src/components/OmniBar.tsx` | Modify | Mobile responsiveness |
-| `src/pages/Index.tsx` | Modify | Add new sections, page entrance animation, ThemeProvider |
-| `src/App.tsx` | Modify | Wrap with ThemeProvider from next-themes |
-| `src/index.css` | Modify | Add dark mode CSS variables |
-| `tailwind.config.ts` | Modify | Ensure darkMode class strategy |
-| `index.html` | Modify | SEO meta tags, OG tags, JSON-LD |
-
-No database changes or edge function updates required.
-
+- Admin dashboard UI (leads remain reachable via MCP tools).
+- Voice input rework beyond keeping the current toggle working.
