@@ -88,10 +88,8 @@ const ConversationThread = ({
                 <Message from={msg.role === "user" ? "user" : "assistant"} className="gap-2">
                   {msg.role === "assistant" && <AgentMark />}
                   {msg.role === "assistant" ? (
-                    <MessageContent
-                      variant="flat"
-                      className="px-0 py-0 text-sm font-sans leading-relaxed text-foreground"
-                    >
+                    <MessageContent className="px-0 py-0 text-sm font-sans leading-relaxed text-foreground">
+
                       <MessageResponse>{msg.content}</MessageResponse>
                     </MessageContent>
                   ) : (
