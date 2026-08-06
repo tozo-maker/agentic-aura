@@ -190,14 +190,16 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
   }, [uiMessages, wizard]);
 
   // ---- Active service highlight -----------------------------------------------------
+  const activeServiceRef = useRef(onActiveService);
+  activeServiceRef.current = onActiveService;
   useEffect(() => {
     const spotlight = [...uiMessages]
       .reverse()
       .flatMap((m) => (m.parts ?? []) as AnyPart[])
       .find((p) => toolNameOf(p) === "service_spotlight");
     const serviceId = (spotlight?.input as { serviceId?: string } | undefined)?.serviceId ?? null;
-    onActiveService?.(serviceId);
-  }, [uiMessages, onActiveService]);
+    activeServiceRef.current?.(serviceId);
+  }, [uiMessages]);
 
   const sendMessage = useCallback(
     async (text: string) => {
