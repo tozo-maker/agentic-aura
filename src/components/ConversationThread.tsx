@@ -1,11 +1,12 @@
 import { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
 import InlineModuleCard from "@/components/genui/InlineModuleCard";
 import WizardCard from "@/components/wizard/WizardCard";
 import type { Msg } from "@/hooks/useAIChat";
 import type { ModuleDeployment } from "@/components/genui/parseModules";
-import { Sparkles } from "lucide-react";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { AlertCircle } from "lucide-react";
 
 interface ConversationThreadProps {
   messages: Msg[];
@@ -17,7 +18,18 @@ interface ConversationThreadProps {
   onWizardStepSubmit: (data: Record<string, string>) => void;
   onWizardComplete: () => void;
   suggestions: string[];
+  error?: Error | null;
 }
+
+const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
+  <motion.div
+    className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center shrink-0 mt-1 shadow-sm"
+    animate={pulse ? { scale: [1, 1.12, 1] } : { scale: [1, 1.04, 1] }}
+    transition={{ duration: pulse ? 1.4 : 3, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <span className="font-serif text-[11px] leading-none text-foreground/70">N</span>
+  </motion.div>
+);
 
 const ConversationThread = ({
   messages,
@@ -29,6 +41,7 @@ const ConversationThread = ({
   onWizardStepSubmit,
   onWizardComplete,
   suggestions,
+  error,
 }: ConversationThreadProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
@@ -42,7 +55,6 @@ const ConversationThread = ({
       <div className="max-w-2xl mx-auto space-y-4">
         <AnimatePresence mode="popLayout">
           {visibleMessages.map((msg, i) => {
-            // Inline module message
             if (msg.role === "module" && msg.module) {
               const deployedIdx = deployedModules.findIndex((d) => d.type === msg.module!.type);
               if (deployedIdx === -1) return null;
@@ -66,46 +78,26 @@ const ConversationThread = ({
               );
             }
 
-            // Text message
             return (
               <motion.div
                 key={`msg-${i}`}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2`}
               >
-                {/* AI Avatar */}
-                {msg.role === "assistant" && (
-                  <motion.div
-                    className="w-7 h-7 rounded-full bg-foreground/10 flex items-center justify-center shrink-0 mt-1"
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-foreground/60" />
-                  </motion.div>
-                )}
-
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-foreground text-primary-foreground rounded-br-sm"
-                      : "bg-card border border-border text-foreground rounded-bl-sm shadow-sm"
-                  }`}
-                >
+                <Message from={msg.role === "user" ? "user" : "assistant"} className="gap-2">
+                  {msg.role === "assistant" && <AgentMark />}
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none text-foreground [&_p]:my-1">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    msg.content
-                  )}
-                </div>
+                    <MessageContent className="px-0 py-0 text-sm font-sans leading-relaxed text-foreground">
 
-                {/* User indicator */}
-                {msg.role === "user" && (
-                  <span className="text-[10px] font-sans text-muted-foreground/50 self-end mb-1 shrink-0">You</span>
-                )}
+                      <MessageResponse>{msg.content}</MessageResponse>
+                    </MessageContent>
+                  ) : (
+                    <MessageContent className="group-[.is-user]:bg-foreground group-[.is-user]:text-primary-foreground group-[.is-user]:rounded-2xl group-[.is-user]:rounded-br-sm text-sm font-sans leading-relaxed">
+                      {msg.content}
+                    </MessageContent>
+                  )}
+                </Message>
               </motion.div>
             );
           })}
@@ -136,49 +128,33 @@ const ConversationThread = ({
 
         {/* Wizard */}
         {wizard.schema && !wizard.completed && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
-          >
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
             <div className="w-full max-w-[85%]">
               <WizardCard onStepSubmit={onWizardStepSubmit} onComplete={onWizardComplete} />
             </div>
           </motion.div>
         )}
 
-        {/* Shimmer thinking indicator */}
-        {isLoading && visibleMessages[visibleMessages.length - 1]?.role === "user" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-start gap-2"
-          >
-            <motion.div
-              className="w-7 h-7 rounded-full bg-foreground/10 flex items-center justify-center shrink-0"
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-foreground/60" />
-            </motion.div>
-            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm overflow-hidden flex-1 max-w-[80%]">
-              <motion.div
-                className="h-3 rounded-full bg-gradient-to-r from-muted via-muted-foreground/20 to-muted"
-                animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                style={{ backgroundSize: "200% 100%" }}
-              />
-              <motion.div
-                className="h-3 rounded-full bg-gradient-to-r from-muted via-muted-foreground/20 to-muted mt-2 w-2/3"
-                animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.2 }}
-                style={{ backgroundSize: "200% 100%" }}
-              />
-            </div>
+        {/* Thinking indicator */}
+        {isLoading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-2">
+            <AgentMark pulse />
+            <Shimmer className="text-sm font-sans mt-1.5">Thinking…</Shimmer>
           </motion.div>
         )}
 
-        {/* Suggestion chips with staggered animation */}
+        {/* Error surface */}
+        {error && !isLoading && (
+          <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+            <div className="text-sm font-sans text-foreground">
+              <p className="font-medium">Something interrupted the response.</p>
+              <p className="text-muted-foreground">{error.message || "Please try sending your message again."}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Suggestion chips */}
         {suggestions.length > 0 && !isLoading && (
           <div className="flex flex-wrap gap-2 pt-2">
             {suggestions.map((s, i) => (
@@ -198,7 +174,6 @@ const ConversationThread = ({
           </div>
         )}
 
-        {/* Spacer for sticky input bar */}
         <div ref={bottomRef} className="h-24" />
       </div>
     </section>
