@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
     const result = streamText({
       model: gateway("google/gemini-3.6-flash"),
       system: BASE_SYSTEM_PROMPT + buildWizardPrompt(wizardContext),
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       tools: genuiTools,
       stopWhen: stepCountIs(3),
       onError: ({ error }) => console.error("streamText error:", error),
