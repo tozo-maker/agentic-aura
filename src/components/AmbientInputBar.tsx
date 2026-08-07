@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Slash, ShoppingCart, Cog, Server, Headphones } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Send, Sparkles, Slash, ShoppingCart, Cog, Server, Headphones, Square } from "lucide-react";
 import VoiceToggle from "@/components/VoiceToggle";
 
 interface AmbientInputBarProps {
   onSubmit: (message: string) => void;
   isLoading?: boolean;
   minimal?: boolean;
+  onStop?: () => void;
 }
 
 const quickActions = [
@@ -16,7 +17,8 @@ const quickActions = [
   { icon: Server, label: "Self-healing infrastructure", category: "Infrastructure" },
 ];
 
-const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: AmbientInputBarProps) => {
+const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop }: AmbientInputBarProps) => {
+  const reduceMotion = useReducedMotion();
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
