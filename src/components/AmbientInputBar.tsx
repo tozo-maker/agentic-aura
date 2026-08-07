@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Slash, ShoppingCart, Cog, Server, Headphones } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Send, Sparkles, Slash, ShoppingCart, Cog, Server, Headphones, Square } from "lucide-react";
 import VoiceToggle from "@/components/VoiceToggle";
 
 interface AmbientInputBarProps {
   onSubmit: (message: string) => void;
   isLoading?: boolean;
   minimal?: boolean;
+  onStop?: () => void;
 }
 
 const quickActions = [
@@ -16,7 +17,8 @@ const quickActions = [
   { icon: Server, label: "Self-healing infrastructure", category: "Infrastructure" },
 ];
 
-const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: AmbientInputBarProps) => {
+const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop }: AmbientInputBarProps) => {
+  const reduceMotion = useReducedMotion();
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,12 +69,12 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: Ambie
               ? "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.15), transparent)"
               : "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.06), transparent)",
           }}
-          animate={{
-            opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4],
-          }}
+          animate={
+            reduceMotion ? { opacity: 0.5 } : { opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4] }
+          }
           transition={{
             duration: isLoading ? 1.5 : 4,
-            repeat: Infinity,
+            repeat: reduceMotion ? 0 : Infinity,
             ease: "easeInOut",
           }}
         />
@@ -122,10 +124,10 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: Ambie
           <div className="flex items-center gap-3">
             <motion.div
               className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center shrink-0"
-              animate={isLoading ? { scale: [1, 1.15, 1] } : {}}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              animate={isLoading && !reduceMotion ? { scale: [1, 1.15, 1] } : {}}
+              transition={{ duration: 1.5, repeat: reduceMotion ? 0 : Infinity, ease: "easeInOut" }}
             >
-              <Sparkles className={`w-4 h-4 text-foreground ${isLoading ? "animate-pulse" : ""}`} />
+              <Sparkles className={`w-4 h-4 text-foreground ${isLoading && !reduceMotion ? "animate-pulse" : ""}`} />
             </motion.div>
 
             <input
@@ -135,6 +137,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: Ambie
               onKeyDown={handleKeyDown}
               placeholder={isLoading ? "Thinking..." : "What are you looking to build?"}
               className="flex-1 bg-transparent text-sm font-sans outline-none text-foreground placeholder:text-muted-foreground"
+              aria-label="Message the Nexus AI consultant"
               disabled={isLoading}
             />
 
@@ -148,36 +151,49 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false }: Ambie
               <Slash className="w-3.5 h-3.5" />
             </button>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!value.trim() || isLoading}
-              className="w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-30 hover:opacity-80 transition-opacity"
-            >
-              <Send className="w-3.5 h-3.5" />
-            </button>
+            {isLoading && onStop ? (
+              <button
+                onClick={onStop}
+                aria-label="Stop generating"
+                className="w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
+              >
+                <Square className="w-3 h-3 fill-current" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!value.trim() || isLoading}
+                aria-label="Send message"
+                className="w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-30 hover:opacity-80 transition-opacity"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {!minimal && (
-            <div className="flex items-center gap-2 mt-2 px-1">
-              <span className="text-[10px] font-sans text-muted-foreground/60 tracking-wide uppercase">Try:</span>
-              {["AI Support", "E-Commerce", "Automation"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onSubmit(s)}
-                  className="text-[10px] font-sans text-muted-foreground px-2 py-0.5 rounded-full border border-border/50 hover:bg-secondary hover:text-foreground transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
-              <kbd className="ml-auto text-[10px] text-muted-foreground/40 font-mono">/</kbd>
-            </div>
-          )}
+            <>
+              <div className="flex items-center gap-2 mt-2 px-1">
+                <span className="text-[10px] font-sans text-muted-foreground/60 tracking-wide uppercase">Try:</span>
+                {["AI Support", "E-Commerce", "Automation"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => onSubmit(s)}
+                    className="text-[10px] font-sans text-muted-foreground px-2 py-0.5 rounded-full border border-border/50 hover:bg-secondary hover:text-foreground transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+                <kbd className="ml-auto text-[10px] text-muted-foreground/40 font-mono">/</kbd>
+              </div>
 
-          {/* Privacy consent notice */}
-          <p className="text-[9px] font-sans text-muted-foreground/40 text-center mt-2 px-1">
-            By chatting, you agree to our{" "}
-            <a href="/privacy" className="underline hover:text-muted-foreground transition-colors">Privacy Policy</a>
-          </p>
+              {/* Privacy consent notice */}
+              <p className="text-[9px] font-sans text-muted-foreground/40 text-center mt-2 px-1">
+                By chatting, you agree to our{" "}
+                <a href="/privacy" className="underline hover:text-muted-foreground transition-colors">Privacy Policy</a>
+              </p>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

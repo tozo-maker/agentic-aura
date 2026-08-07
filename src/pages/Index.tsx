@@ -84,14 +84,16 @@ const SERVICE_MODULE_MAP: Record<string, { type: string; data: Record<string, an
 
 const IndexInner = () => {
   const [activeService, setActiveService] = useState<string | null>(null);
+  const [closed, setClosed] = useState(false);
   const servicesRef = useRef<HTMLElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
 
   const chat = useAIChat((service) => setActiveService(service));
 
-  const hasConversation = chat.messages.length > 1 || chat.deployedModules.length > 0;
+  const hasConversation = !closed && (chat.messages.length > 1 || chat.deployedModules.length > 0);
 
   const handleSendMessage = useCallback((text: string, serviceId?: string) => {
+    setClosed(false);
     if (serviceId && SERVICE_MODULE_MAP[serviceId]) {
       const { type, data } = SERVICE_MODULE_MAP[serviceId];
       chat.preloadModule(type, data);
@@ -106,6 +108,27 @@ const IndexInner = () => {
     handleSendMessage("I'd like to schedule a call with a human expert");
   }, [handleSendMessage]);
 
+  const handleClose = useCallback(() => {
+    chat.stop();
+    setClosed(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [chat]);
+
+  const handleReset = useCallback(() => {
+    chat.reset();
+    setClosed(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [chat]);
+
+  useEffect(() => {
+    if (!hasConversation) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasConversation, handleClose]);
+
   useEffect(() => {
     if (activeService) {
       const timer = setTimeout(() => setActiveService(null), 8000);
@@ -118,15 +141,15 @@ const IndexInner = () => {
       <Navbar />
 
       <main>
-        {/* Hero — smoothly compresses with layout animation */}
+        {/* Hero — collapses into a compact header while a conversation is active */}
         <AnimatePresence mode="wait">
           {!hasConversation ? (
             <motion.div
               key="hero-full"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
             >
               <HeroSection />
               <SocialProof />
@@ -134,10 +157,10 @@ const IndexInner = () => {
           ) : (
             <motion.div
               key="hero-compact"
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="pt-20 pb-4 px-6 text-center"
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="pt-24 pb-2 px-6 text-center"
             >
               <h2 className="text-2xl md:text-3xl font-serif font-semibold text-foreground">
                 Nexus AI
@@ -163,33 +186,33 @@ const IndexInner = () => {
               onWizardComplete={chat.handleWizardComplete}
               suggestions={chat.suggestions}
               error={chat.error as Error | null}
+              onClose={handleClose}
+              onReset={handleReset}
             />
           </div>
         )}
 
-        {/* Marketing sections — depth-of-field effect when conversation active */}
-        <motion.div
-          animate={hasConversation ? {
-            opacity: 0.5,
-            filter: "blur(2px)",
-            scale: 0.98,
-          } : {
-            opacity: 1,
-            filter: "blur(0px)",
-            scale: 1,
-          }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ transformOrigin: "top center" }}
-        >
-          <BentoGrid
-            ref={servicesRef}
-            activeService={activeService}
-            onOpenChat={(intent, serviceId) => handleSendMessage(intent, serviceId)}
-          />
-          <Testimonials />
-          <TrustProtocol />
-          <Footer onScheduleCall={handleScheduleCall} />
-        </motion.div>
+        {/* Marketing sections — step aside while the conversation has focus */}
+        <AnimatePresence initial={false}>
+          {!hasConversation && (
+            <motion.div
+              key="marketing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <BentoGrid
+                ref={servicesRef}
+                activeService={activeService}
+                onOpenChat={(intent, serviceId) => handleSendMessage(intent, serviceId)}
+              />
+              <Testimonials />
+              <TrustProtocol />
+              <Footer onScheduleCall={handleScheduleCall} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Ambient Input Bar — always present */}
@@ -197,6 +220,7 @@ const IndexInner = () => {
         onSubmit={(msg) => handleSendMessage(msg)}
         isLoading={chat.isLoading}
         minimal={hasConversation}
+        onStop={chat.stop}
       />
     </div>
   );
