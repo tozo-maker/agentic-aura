@@ -56,13 +56,16 @@ export const WizardProvider = ({ children }: { children: ReactNode }) => {
   const completeWizard = useCallback(async (sessionId: string) => {
     if (!state.schema) return;
     const d = state.data;
-    await supabase.from("leads").insert({
-      session_id: sessionId,
-      company: d.company_name || null,
-      budget_range: d.budget_range || null,
-      timeline: d.timeline || null,
-      intent_category: state.schema.id,
+    await supabase.functions.invoke("submit-lead", {
+      body: {
+        sessionId,
+        company: d.company_name || null,
+        budget_range: d.budget_range || null,
+        timeline: d.timeline || null,
+        intent_category: state.schema.id,
+      },
     });
+
     setState((s) => ({ ...s, completed: true }));
   }, [state.schema, state.data]);
 
