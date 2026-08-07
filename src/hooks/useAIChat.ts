@@ -77,7 +77,7 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     [sessionId],
   );
 
-  const { messages: uiMessages, sendMessage: sdkSend, setMessages, status, error } = useChat({
+  const { messages: uiMessages, sendMessage: sdkSend, setMessages, status, error, stop } = useChat({
     id: sessionId,
     messages: INITIAL_MESSAGES,
     transport,
