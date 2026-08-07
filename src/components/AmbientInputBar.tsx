@@ -69,12 +69,12 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
               ? "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.15), transparent)"
               : "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.06), transparent)",
           }}
-          animate={{
-            opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4],
-          }}
+          animate={
+            reduceMotion ? { opacity: 0.5 } : { opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4] }
+          }
           transition={{
             duration: isLoading ? 1.5 : 4,
-            repeat: Infinity,
+            repeat: reduceMotion ? 0 : Infinity,
             ease: "easeInOut",
           }}
         />
