@@ -238,6 +238,15 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     [sessionId],
   );
 
+  const reset = useCallback(() => {
+    stop();
+    setMessages(INITIAL_MESSAGES);
+    setPreloaded([]);
+    setRemovedModules([]);
+    setExpiredNotice([]);
+    setInput("");
+  }, [setMessages, stop]);
+
   return {
     sessionId,
     messages,
@@ -250,6 +259,8 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     suggestions,
     sendMessage,
     send,
+    stop,
+    reset,
     wizard,
     hasStartedWizard,
     handleWizardStepSubmit,
