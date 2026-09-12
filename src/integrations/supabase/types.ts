@@ -22,6 +22,8 @@ export type Database = {
           metadata: Json | null
           module_type: string | null
           session_id: string
+          thread_id: string | null
+          updated_at: string
         }
         Insert: {
           created_at?: string
@@ -30,6 +32,8 @@ export type Database = {
           metadata?: Json | null
           module_type?: string | null
           session_id: string
+          thread_id?: string | null
+          updated_at?: string
         }
         Update: {
           created_at?: string
@@ -38,8 +42,18 @@ export type Database = {
           metadata?: Json | null
           module_type?: string | null
           session_id?: string
+          thread_id?: string | null
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_analytics_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_messages: {
         Row: {
@@ -49,6 +63,7 @@ export type Database = {
           lead_id: string | null
           role: string
           session_id: string
+          thread_id: string | null
         }
         Insert: {
           content: string
@@ -57,6 +72,7 @@ export type Database = {
           lead_id?: string | null
           role: string
           session_id: string
+          thread_id?: string | null
         }
         Update: {
           content?: string
@@ -65,6 +81,7 @@ export type Database = {
           lead_id?: string | null
           role?: string
           session_id?: string
+          thread_id?: string | null
         }
         Relationships: [
           {
@@ -72,6 +89,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
             referencedColumns: ["id"]
           },
         ]
@@ -87,6 +111,7 @@ export type Database = {
           name: string | null
           session_id: string
           status: string
+          thread_id: string | null
           timeline: string | null
           updated_at: string
         }
@@ -100,6 +125,7 @@ export type Database = {
           name?: string | null
           session_id: string
           status?: string
+          thread_id?: string | null
           timeline?: string | null
           updated_at?: string
         }
@@ -113,8 +139,47 @@ export type Database = {
           name?: string | null
           session_id?: string
           status?: string
+          thread_id?: string | null
           timeline?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      threads: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

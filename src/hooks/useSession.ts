@@ -28,7 +28,8 @@ export function trackAnalytics(
   sessionId: string,
   eventType: string,
   moduleType?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  threadId?: string,
 ) {
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat?analytics=true`;
   fetch(url, {
@@ -37,6 +38,6 @@ export function trackAnalytics(
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ sessionId, eventType, moduleType, metadata }),
+    body: JSON.stringify({ sessionId, eventType, moduleType, metadata, threadId }),
   }).catch(() => {});
 }

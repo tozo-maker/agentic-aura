@@ -13,6 +13,7 @@ export type Msg = {
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const THREADS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/threads`;
 
 export const MODULE_TOOLS = [
   "service_spotlight",
@@ -26,7 +27,7 @@ export const MODULE_TOOLS = [
 
 const GREETING = "Hi! I'm the Nexus AI consultant. I can help you scope your project, understand our services, or get a quick estimate. What are you looking to build?";
 
-const INITIAL_MESSAGES: UIMessage[] = [
+const createInitialMessages = (): UIMessage[] => [
   { id: "greeting", role: "assistant", parts: [{ type: "text", text: GREETING }] },
 ];
 
@@ -34,7 +35,15 @@ type AnyPart = { type: string; text?: string; input?: unknown; state?: string };
 
 const toolNameOf = (part: AnyPart) => (part.type.startsWith("tool-") ? part.type.slice(5) : null);
 
-export function useAIChat(onActiveService?: (service: string | null) => void) {
+export interface Thread {
+  id: string;
+  title: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useAIChat(threadId: string | undefined, onActiveService?: (service: string | null) => void) {
   const stored = getStoredSession();
   const expired = isSessionExpired(stored);
 
@@ -49,10 +58,10 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
   const [removedModules, setRemovedModules] = useState<string[]>([]);
   const [preloaded, setPreloaded] = useState<ModuleDeployment[]>([]);
   const [expiredNotice, setExpiredNotice] = useState<string[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const hasStartedWizard = useRef(false);
   const wizard = useWizard();
 
-  // Keep the freshest wizard context available to the transport without recreating it.
   const wizardContextRef = useRef<unknown>(undefined);
   wizardContextRef.current = wizard.schema
     ? {
@@ -71,37 +80,57 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
         api: CHAT_URL,
         headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
         prepareSendMessagesRequest: ({ messages }) => ({
-          body: { messages, sessionId, wizardContext: wizardContextRef.current },
+          body: { messages, sessionId, threadId, wizardContext: wizardContextRef.current },
         }),
       }),
-    [sessionId],
+    [sessionId, threadId],
   );
 
   const { messages: uiMessages, sendMessage: sdkSend, setMessages, status, error, stop } = useChat({
-    id: sessionId,
-    messages: INITIAL_MESSAGES,
+    id: threadId || sessionId,
+    messages: createInitialMessages(),
     transport,
   });
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  // ---- Load previous conversation -------------------------------------------------
-  const historyLoaded = useRef(false);
-  useEffect(() => {
-    if (historyLoaded.current) return;
-    historyLoaded.current = true;
+  // ---- Load threads -------------------------------------------------------------
+  const loadThreads = useCallback(async () => {
+    try {
+      const res = await fetch(`${THREADS_URL}?sessionId=${encodeURIComponent(sessionId)}`, {
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      });
+      const { threads: list } = (await res.json()) as { threads: Thread[] };
+      if (Array.isArray(list)) setThreads(list);
+    } catch {
+      setThreads([]);
+    }
+  }, [sessionId]);
 
-    if (!stored || expired) {
-      if (stored && expired) setExpiredNotice(["Continue previous conversation", "Start fresh"]);
+  useEffect(() => {
+    loadThreads();
+  }, [loadThreads]);
+
+  // ---- Load previous conversation for active thread -----------------------------
+  const historyLoaded = useRef<string | null>(null);
+  useEffect(() => {
+    if (!threadId) {
+      setMessages(createInitialMessages());
+      historyLoaded.current = null;
       return;
     }
+    if (historyLoaded.current === threadId) return;
+    historyLoaded.current = threadId;
 
-    fetch(`${CHAT_URL}?history=true&sessionId=${encodeURIComponent(stored.sessionId)}`, {
+    fetch(`${CHAT_URL}?history=true&threadId=${encodeURIComponent(threadId)}`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
     })
       .then((r) => r.json())
       .then(({ messages: history }: { messages?: Array<{ role: string; content: string }> }) => {
-        if (!history?.length) return;
+        if (!history?.length) {
+          setMessages(createInitialMessages());
+          return;
+        }
         const restored: UIMessage[] = history.map((row, i) => {
           if (row.role === "assistant") {
             let parts: AnyPart[];
@@ -121,8 +150,8 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
         });
         setMessages(restored);
       })
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(() => setMessages(createInitialMessages()));
+  }, [threadId, setMessages]);
 
   // ---- Derive view models from AI SDK messages ------------------------------------
   const { messages, deployedModules, suggestions } = useMemo(() => {
@@ -233,22 +262,53 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     (type: string, data: Record<string, any>) => {
       setRemovedModules((prev) => prev.filter((t) => t !== type));
       setPreloaded((prev) => [{ type, data }, ...prev.filter((m) => m.type !== type)]);
-      trackAnalytics(sessionId, "module_preloaded", type);
+      trackAnalytics(sessionId, "module_preloaded", type, undefined, threadId);
     },
-    [sessionId],
+    [sessionId, threadId],
   );
 
   const reset = useCallback(() => {
     stop();
-    setMessages(INITIAL_MESSAGES);
+    setMessages(createInitialMessages());
     setPreloaded([]);
     setRemovedModules([]);
     setExpiredNotice([]);
     setInput("");
   }, [setMessages, stop]);
 
+  const createThread = useCallback(
+    async (title?: string) => {
+      const res = await fetch(THREADS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ sessionId, title }),
+      });
+      const { thread } = (await res.json()) as { thread: Thread };
+      if (thread) {
+        setThreads((prev) => [thread, ...prev]);
+      }
+      return thread?.id;
+    },
+    [sessionId],
+  );
+
+  const deleteThread = useCallback(
+    async (id: string) => {
+      await fetch(`${THREADS_URL}?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      });
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+    },
+    [],
+  );
+
   return {
     sessionId,
+    threadId,
     messages,
     input,
     setInput,
@@ -257,6 +317,10 @@ export function useAIChat(onActiveService?: (service: string | null) => void) {
     error,
     deployedModules,
     suggestions,
+    threads,
+    loadThreads,
+    createThread,
+    deleteThread,
     sendMessage,
     send,
     stop,

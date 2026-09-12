@@ -31,7 +31,8 @@ Your role is to qualify leads by understanding their needs and extracting key in
 2. **Qualify the lead**: naturally ask about company/project, budget range, timeline and pain points. Never ask for everything at once.
 3. **Be helpful**: give genuine insight into how hybrid automation (AI + human verification) solves their problem.
 4. **Tone**: professional but approachable. Keep text VERY SHORT — under 80 words. The UI modules tell the story, not your prose.
-5. If the conversation gets complex, suggest scheduling a call with a human expert.
+5. **Memory**: you are continuing an ongoing thread. Do not repeat questions already answered. Reference what the visitor has already shared.
+6. If the conversation gets complex, suggest scheduling a call with a human expert.
 
 ## CANVAS-FIRST GENERATIVE UI
 
@@ -80,8 +81,27 @@ function textOf(message: UIMessage): string {
     .join("");
 }
 
+async function ensureThread(
+  supabase: SupabaseClient,
+  threadId: string | undefined,
+  sessionId: string,
+  title?: string,
+): Promise<string> {
+  if (threadId) return threadId;
+
+  const { data, error } = await supabase
+    .from("threads")
+    .insert({ session_id: sessionId, title: title || "New conversation" })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(`Failed to create thread: ${error.message}`);
+  return data.id;
+}
+
 async function extractLeadDataAI(
   supabase: SupabaseClient,
+  threadId: string,
   sessionId: string,
   transcript: string,
   apiKey: string,
@@ -114,34 +134,42 @@ async function extractLeadDataAI(
       if (v != null && v !== "") cleanData[k] = v;
     }
     if (Object.keys(cleanData).length === 0) return;
-    await upsertLead(supabase, sessionId, cleanData);
+    await upsertLead(supabase, threadId, sessionId, cleanData);
   } catch (e) {
     console.error("Lead extraction error:", e);
   }
 }
 
-async function upsertLead(supabase: SupabaseClient, sessionId: string, data: Record<string, string>) {
+async function upsertLead(
+  supabase: SupabaseClient,
+  threadId: string,
+  sessionId: string,
+  data: Record<string, string>,
+) {
   const { data: existing } = await supabase
     .from("leads")
     .select("id")
-    .eq("session_id", sessionId)
+    .eq("thread_id", threadId)
     .maybeSingle();
 
+  const payload = { thread_id: threadId, session_id: sessionId, ...data };
   const { error } = existing
-    ? await supabase.from("leads").update(data).eq("session_id", sessionId)
-    : await supabase.from("leads").insert({ session_id: sessionId, ...data });
+    ? await supabase.from("leads").update(data).eq("thread_id", threadId)
+    : await supabase.from("leads").insert(payload);
 
   if (error) console.error("Lead upsert error:", error.message);
 }
 
 async function trackEvent(
   supabase: SupabaseClient,
+  threadId: string,
   sessionId: string,
   eventType: string,
   moduleType?: string,
   metadata?: Record<string, unknown>,
 ) {
   const { error } = await supabase.from("chat_analytics").insert({
+    thread_id: threadId,
     session_id: sessionId,
     event_type: eventType,
     module_type: moduleType || null,
@@ -162,8 +190,8 @@ Deno.serve(async (req) => {
 
     // History endpoint
     if (url.searchParams.get("history") === "true") {
-      const sessionId = url.searchParams.get("sessionId");
-      if (!sessionId) {
+      const threadId = url.searchParams.get("threadId");
+      if (!threadId) {
         return new Response(JSON.stringify({ messages: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -171,9 +199,9 @@ Deno.serve(async (req) => {
       const { data: msgs } = await supabase
         .from("chat_messages")
         .select("role, content, created_at")
-        .eq("session_id", sessionId)
+        .eq("thread_id", threadId)
         .order("created_at", { ascending: true })
-        .limit(100);
+        .limit(200);
 
       return new Response(JSON.stringify({ messages: msgs || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -183,7 +211,7 @@ Deno.serve(async (req) => {
     // Analytics-only endpoint
     if (url.searchParams.get("analytics") === "true") {
       const body = await req.json();
-      await trackEvent(supabase, body.sessionId, body.eventType, body.moduleType, body.metadata);
+      await trackEvent(supabase, body.threadId, body.sessionId, body.eventType, body.moduleType, body.metadata);
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -195,28 +223,36 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const messages = (body.messages ?? []) as UIMessage[];
     const sessionId: string | undefined = body.sessionId;
+    const threadId: string | undefined = body.threadId;
     const wizardContext: WizardContext | undefined = body.wizardContext;
+
+    if (!sessionId) throw new Error("sessionId is required");
+
+    const activeThreadId = await ensureThread(supabase, threadId, sessionId, body.title);
 
     const lastMessage = messages[messages.length - 1];
     const userCount = messages.filter((m) => m.role === "user").length;
 
-    if (sessionId && lastMessage?.role === "user") {
+    if (lastMessage?.role === "user") {
       const content = textOf(lastMessage);
       if (content) {
-        const { error } = await supabase
-          .from("chat_messages")
-          .insert({ session_id: sessionId, role: "user", content });
+        const { error } = await supabase.from("chat_messages").insert({
+          thread_id: activeThreadId,
+          session_id: sessionId,
+          role: "user",
+          content,
+        });
         if (error) console.error("Save user msg error:", error.message);
       }
-      if (userCount <= 1) trackEvent(supabase, sessionId, "session_start").catch(() => {});
-      trackEvent(supabase, sessionId, "message_sent", undefined, {
+      if (userCount <= 1) trackEvent(supabase, activeThreadId, sessionId, "session_start").catch(() => {});
+      trackEvent(supabase, activeThreadId, sessionId, "message_sent", undefined, {
         messageCount: messages.length,
       }).catch(() => {});
     }
 
-    if (sessionId && messages.length >= 4) {
+    if (messages.length >= 4) {
       const transcript = messages.map((m) => `${m.role}: ${textOf(m)}`).join("\n");
-      extractLeadDataAI(supabase, sessionId, transcript, LOVABLE_API_KEY).catch(() => {});
+      extractLeadDataAI(supabase, activeThreadId, sessionId, transcript, LOVABLE_API_KEY).catch(() => {});
     }
 
     const initialRunId = getLovableAiGatewayRunId(req);
@@ -234,9 +270,10 @@ Deno.serve(async (req) => {
     const response = result.toUIMessageStreamResponse({
       originalMessages: messages,
       onFinish: async ({ responseMessage }) => {
-        if (!sessionId || !responseMessage) return;
+        if (!responseMessage) return;
         const parts = responseMessage.parts ?? [];
         const { error } = await supabase.from("chat_messages").insert({
+          thread_id: activeThreadId,
           session_id: sessionId,
           role: "assistant",
           content: JSON.stringify(parts),
@@ -246,12 +283,13 @@ Deno.serve(async (req) => {
         for (const part of parts as Array<{ type: string; input?: unknown }>) {
           const toolName = part.type.startsWith("tool-") ? part.type.slice(5) : null;
           if (toolName && (moduleToolNames as readonly string[]).includes(toolName)) {
-            trackEvent(supabase, sessionId, "module_deployed", toolName).catch(() => {});
+            trackEvent(supabase, activeThreadId, sessionId, "module_deployed", toolName).catch(() => {});
           }
         }
       },
       headers: getLovableAiGatewayResponseHeaders(undefined, {
         ...corsHeaders,
+        "X-Nexus-Thread-ID": activeThreadId,
         ...(initialRunId ? { "X-Lovable-AIG-Run-ID": initialRunId } : {}),
       }),
     });
