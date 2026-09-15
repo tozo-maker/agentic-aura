@@ -24,6 +24,14 @@ export function isSessionExpired(stored: StoredSession | null): boolean {
   return stored ? Date.now() - stored.timestamp > SESSION_EXPIRY_MS : true;
 }
 
+export function ensureSessionId(): string {
+  const stored = getStoredSession();
+  if (stored && !isSessionExpired(stored)) return stored.sessionId;
+  const id = crypto.randomUUID();
+  storeSession(id);
+  return id;
+}
+
 export function trackAnalytics(
   sessionId: string,
   eventType: string,
