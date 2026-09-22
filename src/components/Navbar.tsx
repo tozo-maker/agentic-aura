@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 const navLinks = [
   { label: "Services", href: "#services" },
@@ -32,7 +33,7 @@ const Navbar = () => {
   return (
     <>
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-50 px-6 py-3"
+        className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
         style={{
           backgroundColor: bgColor,
           backdropFilter: blurFilter,
@@ -40,40 +41,46 @@ const Navbar = () => {
         }}
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <a href="#" className="text-xl font-serif font-semibold text-foreground tracking-tight">
-            Nexus AI
+          <a href="#" className="flex items-center gap-3 text-xl font-serif text-foreground">
+            <span className="w-2.5 h-2.5 bg-primary" aria-hidden="true" /> Nexus AI
           </a>
 
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <button
+              <Button
                 key={link.href}
                 onClick={() => scrollTo(link.href)}
-                className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors"
+                variant="ghost"
+                size="sm"
+                className="text-sm text-muted-foreground"
               >
                 {link.label}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div className="flex items-center gap-3">
             {mounted && (
-              <button
+              <Button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground"
                 aria-label="Toggle theme"
               >
                 {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
+              </Button>
             )}
 
-            <button
+            <Button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              variant="ghost"
+              size="icon-sm"
+              className="md:hidden text-muted-foreground"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            </Button>
           </div>
         </div>
       </motion.nav>

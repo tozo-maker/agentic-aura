@@ -1,62 +1,65 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowDownRight } from "lucide-react";
 
 const HeroSection = () => {
-  return (
-    <section className="relative min-h-[70vh] flex items-center justify-center noise-overlay overflow-hidden pt-20">
-      {/* Animated gradient orbs */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20"
-        style={{ background: "radial-gradient(circle, hsl(35 40% 85%), transparent)" }}
-        animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15"
-        style={{ background: "radial-gradient(circle, hsl(25 30% 80%), transparent)" }}
-        animate={{ x: [0, -25, 0], y: [0, 25, 0], scale: [1, 1.15, 1] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
+  const reduceMotion = useReducedMotion();
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+  return (
+    <section className="relative min-h-[72vh] border-b border-border pt-28 pb-28 overflow-hidden">
+      <div className="absolute inset-y-0 left-[8%] w-px bg-border/70" aria-hidden="true" />
+      <div className="absolute inset-y-0 right-[8%] w-px bg-border/70" aria-hidden="true" />
+      <div className="relative max-w-6xl mx-auto px-6">
+        <div className="grid lg:grid-cols-[1.35fr_.65fr] gap-12 lg:gap-20 items-end">
+          <div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <span className="inline-block mb-6 px-4 py-1.5 text-xs font-sans font-medium tracking-widest uppercase text-muted-foreground glass rounded-full">
-            Hybrid Intelligence Agency
-          </span>
+              <div className="flex items-center gap-3 mb-8">
+                <span className="h-2 w-2 bg-accent" />
+                <span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-primary">Hybrid Intelligence Agency</span>
+              </div>
         </motion.div>
 
         <motion.h1
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-semibold leading-[0.95] tracking-tight text-foreground mb-8"
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] font-serif font-normal leading-[0.82] text-foreground mb-10"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         >
-          Where Automation
-          <br />
-          <span className="italic font-normal">Meets Intention</span>
+              Nexus AI
         </motion.h1>
 
+            <motion.p
+              className="text-2xl sm:text-3xl md:text-4xl font-serif text-muted-foreground max-w-2xl leading-tight"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            >
+              Agentic systems built to act. <span className="italic text-foreground">Human judgment stays in control.</span>
+            </motion.p>
+          </div>
+
         <motion.p
-          className="text-lg md:text-xl text-muted-foreground font-sans max-w-2xl mx-auto mb-6 leading-relaxed"
+            className="text-base md:text-lg text-muted-foreground font-sans max-w-md leading-relaxed border-t border-border pt-6"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
-          We build agentic systems that think, adapt, and act—with a human always in the loop.
-          Commerce, workflows, and infrastructure that run themselves.
+            We design commerce, workflows, support, and infrastructure that think, adapt, and execute—with experts at every critical decision.
         </motion.p>
+        </div>
 
-        <motion.p
-          className="text-sm text-muted-foreground/60 font-sans"
+        <motion.div
+          className="mt-16 flex items-center gap-3 text-sm font-medium text-primary"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
         >
-          Start typing below to talk to our AI ↓
-        </motion.p>
+          <ArrowDownRight className={`w-4 h-4 ${reduceMotion ? "" : "animate-bounce"}`} />
+          Start with the AI consultant below
+        </motion.div>
       </div>
     </section>
   );
