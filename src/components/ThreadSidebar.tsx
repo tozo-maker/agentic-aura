@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Trash2, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Thread } from "@/hooks/useAIChat";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ThreadSidebarProps {
   threads: Thread[];
@@ -10,10 +11,11 @@ interface ThreadSidebarProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  className?: string;
 }
 
-const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete }: ThreadSidebarProps) => (
-  <aside className="flex flex-col w-full md:w-72 shrink-0 border border-border bg-background shadow-[var(--shadow-glass)] overflow-hidden">
+const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete, className }: ThreadSidebarProps) => (
+  <aside className={cn("flex flex-col w-full md:w-72 shrink-0 border border-border bg-background shadow-[var(--shadow-glass)] overflow-hidden", className)}>
     <div className="p-3 border-b border-border flex items-center gap-2">
       <Link
         to="/"

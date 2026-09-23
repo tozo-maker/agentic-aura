@@ -19,7 +19,7 @@ interface AmbientInputBarProps {
 }
 
 const quickActions = [
-  { icon: Sparkles, label: "Cut support costs by 50%", category: "AI Support" },
+  { icon: Headphones, label: "Cut support costs by 50%", category: "AI Support" },
   { icon: Cog, label: "Automate procurement workflows", category: "Automation" },
   { icon: ShoppingCart, label: "Build a headless storefront", category: "Commerce" },
   { icon: Server, label: "Self-healing infrastructure", category: "Infrastructure" },
