@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface VoiceToggleProps {
   onTranscript: (text: string) => void;
@@ -72,11 +73,13 @@ const VoiceToggle = ({ onTranscript, disabled }: VoiceToggleProps) => {
         )}
       </AnimatePresence>
 
-      <button
+      <Button
         type="button"
         onClick={listening ? stop : start}
         disabled={disabled}
-        className={`relative h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
+        variant="ghost"
+        size="icon-sm"
+        className={`relative ${
           listening
             ? "text-destructive"
             : "text-muted-foreground hover:text-foreground"
@@ -91,7 +94,7 @@ const VoiceToggle = ({ onTranscript, disabled }: VoiceToggleProps) => {
           />
         )}
         {listening ? <MicOff className="w-4 h-4 relative z-10" /> : <Mic className="w-4 h-4" />}
-      </button>
+      </Button>
 
       {listening && (
         <span className="text-[10px] font-sans text-destructive font-medium">Listening…</span>

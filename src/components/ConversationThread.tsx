@@ -10,7 +10,8 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { AlertCircle, X, RotateCcw } from "lucide-react";
+import { AlertCircle, X, RotateCcw, PanelLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ConversationThreadProps {
   messages: Msg[];
@@ -25,6 +26,7 @@ interface ConversationThreadProps {
   error?: Error | null;
   onClose?: () => void;
   onReset?: () => void;
+  onOpenHistory?: () => void;
 }
 
 const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
@@ -50,14 +52,16 @@ const ConversationThread = ({
   error,
   onClose,
   onReset,
+  onOpenHistory,
 }: ConversationThreadProps) => {
   const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
 
   return (
-    <section className="relative px-4 pt-2" aria-label="Conversation with Nexus AI consultant">
-      <div className="max-w-2xl mx-auto rounded-3xl border border-border bg-card/60 shadow-[var(--shadow-glass)] overflow-hidden">
+    <section className="relative min-h-0 flex-1 flex flex-col" aria-label="Conversation with Nexus AI consultant">
+      <div className="min-h-0 flex-1 flex flex-col bg-background overflow-hidden">
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/70 backdrop-blur-xl">
+        <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-border bg-background/90 backdrop-blur-xl">
+          {onOpenHistory && <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onOpenHistory} aria-label="Open conversation history"><PanelLeft /></Button>}
           <AgentMark pulse={isLoading} />
           <div className="min-w-0">
             <p className="text-sm font-sans font-medium text-foreground leading-tight">Nexus AI Consultant</p>
@@ -67,31 +71,31 @@ const ConversationThread = ({
           </div>
           <div className="ml-auto flex items-center gap-1">
             {onReset && (
-              <button
+              <Button
                 onClick={onReset}
                 aria-label="Start a new conversation"
                 title="New conversation"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                variant="ghost" size="icon-sm"
               >
                 <RotateCcw className="w-4 h-4" />
-              </button>
+              </Button>
             )}
             {onClose && (
-              <button
+              <Button
                 onClick={onClose}
                 aria-label="Close conversation and return to site"
                 title="Back to site"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                variant="ghost" size="icon-sm"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             )}
           </div>
         </header>
 
         {/* Scrollable transcript */}
-        <Conversation className="h-[min(60vh,32rem)]">
-          <ConversationContent className="gap-4 p-4 pb-6">
+        <Conversation className="flex-1 min-h-0">
+          <ConversationContent className="gap-6 px-4 sm:px-8 py-8 pb-10 max-w-3xl mx-auto w-full">
             <AnimatePresence mode="popLayout">
               {visibleMessages.map((msg, i) => {
                 if (msg.role === "module" && msg.module) {
@@ -135,7 +139,7 @@ const ConversationThread = ({
                           <MessageResponse>{msg.content}</MessageResponse>
                         </MessageContent>
                       ) : (
-                        <MessageContent className="group-[.is-user]:bg-foreground group-[.is-user]:text-primary-foreground group-[.is-user]:rounded-2xl group-[.is-user]:rounded-br-sm text-sm font-sans leading-relaxed">
+                        <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground group-[.is-user]:rounded-md text-sm font-sans leading-relaxed">
                           {msg.content}
                         </MessageContent>
                       )}
@@ -201,7 +205,7 @@ const ConversationThread = ({
 
         {/* Suggestion chips */}
         {suggestions.length > 0 && !isLoading && (
-          <div className="flex flex-wrap gap-2 px-4 py-3 border-t border-border bg-background/60">
+          <div className="flex flex-wrap gap-2 px-4 sm:px-8 py-3 border-t border-border bg-secondary/35">
             {suggestions.map((s, i) => (
               <motion.button
                 key={s}
