@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Send, Sparkles, Slash, ShoppingCart, Cog, Server, Headphones, Square } from "lucide-react";
+import { Slash, ShoppingCart, Cog, Server, Headphones } from "lucide-react";
 import VoiceToggle from "@/components/VoiceToggle";
+import { Button } from "@/components/ui/button";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
 
 interface AmbientInputBarProps {
   onSubmit: (message: string) => void;
@@ -21,24 +29,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
   const reduceMotion = useReducedMotion();
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
-
-  const handleSubmit = () => {
-    if (!value.trim() || isLoading) return;
-    onSubmit(value.trim());
-    setValue("");
-    setShowActions(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSubmit();
-    if (e.key === "/" && value === "") {
-      e.preventDefault();
-      setShowActions((prev) => !prev);
-    }
-    if (e.key === "Escape") setShowActions(false);
-  };
 
   useEffect(() => {
     if (value.startsWith("/")) {
@@ -59,15 +50,14 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)]">
-      {/* Ambient glow */}
-      <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none">
+    <div className={`${minimal ? "relative" : "fixed"} bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)]`}>
+      {!minimal && <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none">
         <motion.div
           className="absolute inset-x-0 bottom-0 h-full"
           style={{
             background: isLoading
-              ? "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.15), transparent)"
-              : "radial-gradient(ellipse 60% 100% at 50% 100%, hsl(var(--primary) / 0.06), transparent)",
+              ? "linear-gradient(to top, hsl(var(--secondary)), transparent)"
+              : "linear-gradient(to top, hsl(var(--background)), transparent)",
           }}
           animate={
             reduceMotion ? { opacity: 0.5 } : { opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4] }
@@ -78,9 +68,9 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
             ease: "easeInOut",
           }}
         />
-      </div>
+      </div>}
 
-      <div className="relative max-w-2xl mx-auto px-4 pb-4">
+      <div className={`relative ${minimal ? "w-full" : "max-w-3xl mx-auto px-4 pb-5"}`}>
         {/* Quick actions popover */}
         <AnimatePresence>
           {showActions && (
@@ -90,99 +80,84 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute bottom-full mb-2 left-4 right-4 glass rounded-xl shadow-[var(--shadow-elevated)] overflow-hidden"
+              className="absolute bottom-full mb-2 left-0 right-0 glass rounded-md shadow-[var(--shadow-elevated)] overflow-hidden"
             >
               <p className="px-4 py-2 text-[10px] font-sans font-medium text-muted-foreground uppercase tracking-widest border-b border-border">
                 Quick Actions
               </p>
               {quickActions.map((action) => (
-                <button
+                <Button
                   key={action.label}
                   onClick={() => {
                     onSubmit(action.label);
                     setShowActions(false);
                     setValue("");
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/60 transition-colors group"
+                  variant="ghost"
+                  className="w-full h-auto justify-start rounded-none px-4 py-3 text-left group"
                 >
                   <action.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <div className="flex-1">
                     <p className="text-sm font-sans text-foreground">{action.label}</p>
                     <p className="text-xs text-muted-foreground">{action.category}</p>
                   </div>
-                </button>
+                </Button>
               ))}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Input bar */}
-        <motion.div
-          layout
-          className="glass rounded-2xl shadow-[var(--shadow-elevated)] border border-border/50 px-4 py-3"
+        <motion.div layout className={minimal ? "" : "shadow-[var(--shadow-elevated)]"}
         >
-          <div className="flex items-center gap-3">
-            <motion.div
-              className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center shrink-0"
-              animate={isLoading && !reduceMotion ? { scale: [1, 1.15, 1] } : {}}
-              transition={{ duration: 1.5, repeat: reduceMotion ? 0 : Infinity, ease: "easeInOut" }}
-            >
-              <Sparkles className={`w-4 h-4 text-foreground ${isLoading && !reduceMotion ? "animate-pulse" : ""}`} />
-            </motion.div>
-
-            <input
-              ref={inputRef}
+          <PromptInput
+            onSubmit={(message) => {
+              const text = message.text?.trim();
+              if (!text || isLoading) return;
+              onSubmit(text);
+              setValue("");
+              setShowActions(false);
+            }}
+            className={`${minimal ? "rounded-none border-0 border-t" : "glass rounded-md border-border"} bg-background/95`}
+          >
+            <PromptInputTextarea
               value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isLoading ? "Thinking..." : "What are you looking to build?"}
-              className="flex-1 bg-transparent text-sm font-sans outline-none text-foreground placeholder:text-muted-foreground"
+              onChange={(event) => setValue(event.target.value)}
+              placeholder={isLoading ? "Nexus is thinking…" : "What are you looking to build?"}
               aria-label="Message the Nexus AI consultant"
               disabled={isLoading}
+              className="min-h-16 px-4 pt-4 text-base"
             />
-
-            <VoiceToggle onTranscript={(t) => onSubmit(t)} disabled={isLoading} />
-
-            <button
-              onClick={() => setShowActions((prev) => !prev)}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shrink-0"
-              aria-label="Quick actions"
-            >
-              <Slash className="w-3.5 h-3.5" />
-            </button>
-
-            {isLoading && onStop ? (
-              <button
-                onClick={onStop}
-                aria-label="Stop generating"
-                className="w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center shrink-0 hover:opacity-80 transition-opacity"
-              >
-                <Square className="w-3 h-3 fill-current" />
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={!value.trim() || isLoading}
-                aria-label="Send message"
-                className="w-8 h-8 rounded-full bg-foreground text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-30 hover:opacity-80 transition-opacity"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+            <PromptInputFooter className="px-3 pb-3">
+              <PromptInputTools>
+                <VoiceToggle onTranscript={(text) => onSubmit(text)} disabled={isLoading} />
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowActions((prev) => !prev)} aria-label="Quick actions">
+                  <Slash className="w-3.5 h-3.5" />
+                </Button>
+                {!minimal && <span className="hidden sm:inline text-xs text-muted-foreground">Ask about a project, process, or bottleneck</span>}
+              </PromptInputTools>
+              <PromptInputSubmit
+                status={isLoading ? "streaming" : "ready"}
+                onStop={onStop}
+                disabled={!value.trim() && !isLoading}
+                className="bg-primary text-primary-foreground"
+              />
+            </PromptInputFooter>
+          </PromptInput>
 
           {!minimal && (
             <>
               <div className="flex items-center gap-2 mt-2 px-1">
                 <span className="text-[10px] font-sans text-muted-foreground/60 tracking-wide uppercase">Try:</span>
                 {["AI Support", "E-Commerce", "Automation"].map((s) => (
-                  <button
+                  <Button
                     key={s}
                     onClick={() => onSubmit(s)}
-                    className="text-[10px] font-sans text-muted-foreground px-2 py-0.5 rounded-full border border-border/50 hover:bg-secondary hover:text-foreground transition-colors"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
                   >
                     {s}
-                  </button>
+                  </Button>
                 ))}
                 <kbd className="ml-auto text-[10px] text-muted-foreground/40 font-mono">/</kbd>
               </div>

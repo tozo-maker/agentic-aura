@@ -53,8 +53,8 @@ const ChatInner = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-6xl mx-auto px-4 pt-6 pb-40 flex gap-4">
+    <div className="min-h-screen bg-secondary/35">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6 flex gap-3 sm:gap-4 h-screen">
         <ThreadSidebar
           threads={chat.threads}
           activeId={threadId}
@@ -63,7 +63,7 @@ const ChatInner = () => {
           onDelete={handleDelete}
         />
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col bg-background border border-border shadow-[var(--shadow-glass)] overflow-hidden">
           <ConversationThread
             messages={chat.messages}
             isLoading={chat.isLoading}
@@ -78,15 +78,14 @@ const ChatInner = () => {
             onClose={() => navigate("/")}
             onReset={handleNewThread}
           />
+          <AmbientInputBar
+            onSubmit={(msg) => chat.sendMessage(msg)}
+            isLoading={chat.isLoading}
+            minimal
+            onStop={chat.stop}
+          />
         </div>
       </main>
-
-      <AmbientInputBar
-        onSubmit={(msg) => chat.sendMessage(msg)}
-        isLoading={chat.isLoading}
-        minimal
-        onStop={chat.stop}
-      />
     </div>
   );
 };

@@ -24,19 +24,19 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section id="results" className="py-24 px-6 noise-overlay">
+    <section id="results" className="py-24 px-6 border-b border-border">
       <div className="max-w-6xl mx-auto">
         <motion.div
-          className="text-center mb-16"
+          className="max-w-2xl mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <span className="text-xs font-sans font-medium tracking-widest uppercase text-muted-foreground">
+          <span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-accent">
             Results
           </span>
-          <h2 className="text-4xl md:text-5xl font-serif font-semibold mt-4 text-foreground">
+          <h2 className="text-5xl md:text-6xl font-serif font-normal mt-4 text-foreground">
             What Results Look Like
           </h2>
           <p className="text-xs font-sans text-muted-foreground mt-3">
@@ -52,7 +52,7 @@ const Testimonials = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="glass rounded-2xl p-6 flex flex-col justify-between"
+               className="border-t-2 border-primary bg-card p-6 flex flex-col justify-between min-h-64"
             >
               <div>
                 <Quote className="w-8 h-8 text-muted-foreground/30 mb-4" />
@@ -65,7 +65,7 @@ const Testimonials = () => {
                   <p className="text-sm font-sans font-semibold text-foreground">{t.name}</p>
                   <p className="text-xs font-sans text-muted-foreground">{t.role}</p>
                 </div>
-                <span className="text-xs font-sans font-semibold bg-foreground text-primary-foreground px-3 py-1 rounded-full">
+                <span className="text-xs font-sans font-semibold text-primary border border-primary/25 px-3 py-1 rounded-md">
                   {t.metric}
                 </span>
               </div>

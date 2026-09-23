@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { MessageSquare, Plus, Trash2, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Thread } from "@/hooks/useAIChat";
+import { Button } from "@/components/ui/button";
 
 interface ThreadSidebarProps {
   threads: Thread[];
@@ -12,7 +13,7 @@ interface ThreadSidebarProps {
 }
 
 const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete }: ThreadSidebarProps) => (
-  <aside className="hidden md:flex md:flex-col w-64 shrink-0 rounded-3xl border border-border bg-card/60 shadow-[var(--shadow-glass)] overflow-hidden">
+  <aside className="flex flex-col w-full md:w-72 shrink-0 border border-border bg-background shadow-[var(--shadow-glass)] overflow-hidden">
     <div className="p-3 border-b border-border flex items-center gap-2">
       <Link
         to="/"
@@ -21,13 +22,13 @@ const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete }: ThreadS
       >
         <Home className="w-4 h-4" />
       </Link>
-      <button
+      <Button
         onClick={onNew}
-        className="flex-1 flex items-center justify-center gap-2 h-9 rounded-full bg-foreground text-primary-foreground text-xs font-sans hover:opacity-85 transition-opacity"
+        className="flex-1 h-9 text-xs"
       >
         <Plus className="w-3.5 h-3.5" />
         New conversation
-      </button>
+      </Button>
     </div>
 
     <nav className="flex-1 overflow-y-auto p-2 space-y-1" aria-label="Your conversations">
@@ -38,7 +39,7 @@ const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete }: ThreadS
         <motion.div
           key={t.id}
           layout
-          className={`group flex items-center gap-2 rounded-xl px-2 transition-colors ${
+          className={`group flex items-center gap-2 rounded-md px-2 transition-colors ${
             t.id === activeId ? "bg-secondary" : "hover:bg-secondary/60"
           }`}
         >
