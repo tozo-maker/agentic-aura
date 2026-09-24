@@ -38,6 +38,10 @@
     --glass-border: 210 15% 82% / 0.72;
     --glass-blur: 18px;
 
+    --surface-raised: 0 0% 100%;
+    --surface-inverse: 210 10% 14%;
+    --surface-inverse-foreground: 40 33% 98%;
+
     --shadow-glass: 0 12px 36px hsl(210 18% 18% / 0.07);
     --shadow-elevated: 0 24px 70px hsl(210 18% 18% / 0.12);
 
@@ -82,6 +86,10 @@
 
     --glass: 20 8% 14% / 0.5;
     --glass-border: 20 6% 22% / 0.6;
+
+    --surface-raised: 20 8% 14%;
+    --surface-inverse: 40 20% 92%;
+    --surface-inverse-foreground: 20 10% 10%;
 
     --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 20px 60px hsl(0 0% 0% / 0.4);
@@ -145,5 +153,21 @@
 
   .editorial-rule {
     background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  .nexus-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.42) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.42) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: linear-gradient(to bottom, transparent, black 20%, black 76%, transparent);
+  }
+
+  .consultant-frame {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--surface-raised));
+    box-shadow: var(--shadow-elevated);
+    padding: 0.375rem;
   }
 }

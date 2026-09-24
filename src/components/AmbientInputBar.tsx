@@ -16,6 +16,7 @@ interface AmbientInputBarProps {
   isLoading?: boolean;
   minimal?: boolean;
   onStop?: () => void;
+  variant?: "hero" | "chat";
 }
 
 const quickActions = [
@@ -25,7 +26,13 @@ const quickActions = [
   { icon: Server, label: "Self-healing infrastructure", category: "Infrastructure" },
 ];
 
-const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop }: AmbientInputBarProps) => {
+const starterPrompts = [
+  "Map an automation opportunity",
+  "Plan an AI support system",
+  "Review my commerce stack",
+];
+
+const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop, variant = minimal ? "chat" : "hero" }: AmbientInputBarProps) => {
   const reduceMotion = useReducedMotion();
   const [value, setValue] = useState("");
   const [showActions, setShowActions] = useState(false);
@@ -50,27 +57,8 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
   }, []);
 
   return (
-    <div className={`${minimal ? "relative" : "fixed"} bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)]`}>
-      {!minimal && <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none">
-        <motion.div
-          className="absolute inset-x-0 bottom-0 h-full"
-          style={{
-            background: isLoading
-              ? "linear-gradient(to top, hsl(var(--secondary)), transparent)"
-              : "linear-gradient(to top, hsl(var(--background)), transparent)",
-          }}
-          animate={
-            reduceMotion ? { opacity: 0.5 } : { opacity: isLoading ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4] }
-          }
-          transition={{
-            duration: isLoading ? 1.5 : 4,
-            repeat: reduceMotion ? 0 : Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      </div>}
-
-      <div className={`relative ${minimal ? "w-full" : "max-w-3xl mx-auto px-4 pb-5"}`}>
+    <div className="relative z-20 w-full pb-[env(safe-area-inset-bottom)]">
+      <div className="relative w-full">
         {/* Quick actions popover */}
         <AnimatePresence>
           {showActions && (
@@ -80,7 +68,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute bottom-full mb-2 left-0 right-0 glass rounded-md shadow-[var(--shadow-elevated)] overflow-hidden"
+              className="absolute bottom-full mb-2 left-0 right-0 border border-border bg-popover shadow-[var(--shadow-elevated)] overflow-hidden"
             >
               <p className="px-4 py-2 text-[10px] font-sans font-medium text-muted-foreground uppercase tracking-widest border-b border-border">
                 Quick Actions
@@ -107,7 +95,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
           )}
         </AnimatePresence>
 
-        <motion.div layout className={minimal ? "" : "shadow-[var(--shadow-elevated)]"}
+        <motion.div layout className={variant === "hero" ? "consultant-frame" : ""}
         >
           <PromptInput
             onSubmit={(message) => {
@@ -117,7 +105,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
               setValue("");
               setShowActions(false);
             }}
-            className={`${minimal ? "rounded-none border-0 border-t" : "glass rounded-md border-border"} bg-background/95`}
+            className={`${variant === "chat" ? "rounded-none border-0 border-t" : "rounded-md border-border bg-card"}`}
           >
             <PromptInputTextarea
               value={value}
@@ -125,7 +113,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
               placeholder={isLoading ? "Nexus is thinking…" : "What are you looking to build?"}
               aria-label="Message the Nexus AI consultant"
               disabled={isLoading}
-              className="min-h-16 px-4 pt-4 text-base"
+              className={`${variant === "hero" ? "min-h-24 px-5 pt-5 text-base sm:text-lg" : "min-h-16 px-4 pt-4 text-base"}`}
             />
             <PromptInputFooter className="px-3 pb-3">
               <PromptInputTools>
@@ -133,7 +121,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
                 <Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowActions((prev) => !prev)} aria-label="Quick actions">
                   <Slash className="w-3.5 h-3.5" />
                 </Button>
-                {!minimal && <span className="hidden sm:inline text-xs text-muted-foreground">Ask about a project, process, or bottleneck</span>}
+                {variant === "hero" && <span className="hidden sm:inline text-xs text-muted-foreground">Private consultation · no commitment</span>}
               </PromptInputTools>
               <PromptInputSubmit
                 status={isLoading ? "streaming" : "ready"}
@@ -144,26 +132,24 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop 
             </PromptInputFooter>
           </PromptInput>
 
-          {!minimal && (
+          {variant === "hero" && (
             <>
-              <div className="flex items-center gap-2 mt-2 px-1">
-                <span className="text-[10px] font-sans text-muted-foreground/60 tracking-wide uppercase">Try:</span>
-                {["AI Support", "E-Commerce", "Automation"].map((s) => (
+              <div className="grid gap-2 mt-3 sm:grid-cols-3">
+                {starterPrompts.map((s) => (
                   <Button
                     key={s}
                     onClick={() => onSubmit(s)}
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-[10px]"
+                    className="h-auto min-h-9 justify-start border border-border bg-background px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
                   >
                     {s}
                   </Button>
                 ))}
-                <kbd className="ml-auto text-[10px] text-muted-foreground/40 font-mono">/</kbd>
               </div>
 
               {/* Privacy consent notice */}
-              <p className="text-[9px] font-sans text-muted-foreground/40 text-center mt-2 px-1">
+              <p className="text-[10px] font-sans text-muted-foreground text-center mt-3 px-1">
                 By chatting, you agree to our{" "}
                 <a href="/privacy" className="underline hover:text-muted-foreground transition-colors">Privacy Policy</a>
               </p>
