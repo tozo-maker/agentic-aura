@@ -3,6 +3,7 @@ import { X, MessageCircle } from "lucide-react";
 import GenUIRenderer from "@/components/genui/GenUIRenderer";
 import ModuleErrorBoundary from "@/components/genui/ModuleErrorBoundary";
 import type { ModuleDeployment } from "@/components/genui/parseModules";
+import { Button } from "@/components/ui/button";
 
 const moduleLabels: Record<string, string> = {
   service_spotlight: "Service Spotlight",
@@ -25,11 +26,11 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
   const label = moduleLabels[mod.type] || mod.type;
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+    <div className="rounded-md border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-secondary/30">
         <div className="flex items-center gap-2">
           <motion.span
-            className="w-2 h-2 rounded-full bg-primary"
+            className="w-2 h-2 bg-primary"
             animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -39,19 +40,21 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
         </div>
         <div className="flex items-center gap-1">
           {showChat && (
-            <button
+            <Button
               onClick={() => onSendMessage(`Tell me more about this ${label}`)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              variant="ghost" size="icon-sm"
+              aria-label={`Ask about ${label}`}
             >
               <MessageCircle className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={onRemove}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            variant="ghost" size="icon-sm"
+            aria-label={`Close ${label}`}
           >
             <X className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         </div>
       </div>
       <div className="p-5">

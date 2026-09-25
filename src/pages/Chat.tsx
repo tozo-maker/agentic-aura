@@ -55,8 +55,8 @@ const ChatInner = () => {
   );
 
   return (
-    <div className="min-h-screen bg-secondary/35">
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-6 flex gap-3 sm:gap-4 h-screen">
+    <div className="min-h-screen bg-background">
+      <main className="mx-auto flex h-screen max-w-[1440px] border-x border-border">
         <ThreadSidebar
           className="hidden md:flex"
           threads={chat.threads}
@@ -66,7 +66,7 @@ const ChatInner = () => {
           onDelete={handleDelete}
         />
 
-        <div className="flex-1 min-w-0 flex flex-col bg-background border border-border shadow-[var(--shadow-glass)] overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col bg-background overflow-hidden">
           <ConversationThread
             messages={chat.messages}
             isLoading={chat.isLoading}
