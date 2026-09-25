@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ServiceSpotlightData {
   serviceId: string;
@@ -15,12 +16,12 @@ const ServiceSpotlight = ({ data, onAction }: { data: ServiceSpotlightData; onAc
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-5 space-y-3"
+    className="space-y-4"
   >
     <div className="flex items-center justify-between">
       <h4 className="text-base font-serif font-semibold text-foreground">{data.title}</h4>
       {data.highlight && (
-        <span className="text-[10px] font-sans font-medium bg-foreground text-primary-foreground px-2 py-0.5 rounded-full flex items-center gap-1">
+        <span className="text-[10px] font-sans font-medium bg-primary text-primary-foreground px-2 py-1 rounded-sm flex items-center gap-1">
           <Star className="w-3 h-3" /> {data.highlight}
         </span>
       )}
@@ -29,7 +30,7 @@ const ServiceSpotlight = ({ data, onAction }: { data: ServiceSpotlightData; onAc
     <ul className="space-y-1.5">
       {data.features?.map((f, i) => (
         <li key={i} className="text-xs font-sans text-foreground flex items-center gap-2">
-          <span className="w-1 h-1 rounded-full bg-foreground shrink-0" />
+          <span className="w-1.5 h-1.5 bg-primary shrink-0" />
           {f}
         </li>
       ))}
@@ -39,17 +40,17 @@ const ServiceSpotlight = ({ data, onAction }: { data: ServiceSpotlightData; onAc
         <p className="text-[10px] font-sans uppercase tracking-wider text-muted-foreground mb-1">Use Cases</p>
         <div className="flex flex-wrap gap-1">
           {data.useCases.map((uc, i) => (
-            <span key={i} className="text-[10px] font-sans bg-secondary text-foreground px-2 py-0.5 rounded-full">{uc}</span>
+            <span key={i} className="text-[10px] font-sans border border-border text-foreground px-2 py-1 rounded-sm">{uc}</span>
           ))}
         </div>
       </div>
     )}
-    <button
+    <Button
       onClick={() => onAction?.(`I'd like to scope a ${data.title} project`)}
-      className="w-full mt-2 flex items-center justify-center gap-2 text-xs font-sans font-medium bg-foreground text-primary-foreground py-2 rounded-xl hover:opacity-90 transition-opacity"
+      className="w-full mt-2"
     >
       Start scoping <ArrowRight className="w-3 h-3" />
-    </button>
+    </Button>
   </motion.div>
 );
 

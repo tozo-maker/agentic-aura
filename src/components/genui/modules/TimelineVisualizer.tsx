@@ -12,7 +12,7 @@ const TimelineVisualizer = ({ data }: { data: TimelineData }) => (
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-5 space-y-3"
+    className="space-y-4"
   >
     <div className="flex items-center gap-2">
       <Clock className="w-4 h-4 text-foreground" />
@@ -28,9 +28,9 @@ const TimelineVisualizer = ({ data }: { data: TimelineData }) => (
               <span className="text-xs font-sans font-medium text-foreground">{phase.name}</span>
               <span className="text-[10px] font-sans text-muted-foreground">{phase.weeks}w</span>
             </div>
-            <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-secondary rounded-sm h-2 overflow-hidden">
               <motion.div
-                className="h-full bg-foreground rounded-full"
+                className="h-full bg-primary"
                 initial={{ width: 0 }}
                 animate={{ width: `${widthPct}%` }}
                 transition={{ delay: i * 0.15, duration: 0.6, ease: "easeOut" }}

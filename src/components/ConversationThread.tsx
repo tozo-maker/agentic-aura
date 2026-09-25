@@ -12,6 +12,7 @@ import {
 } from "@/components/ai-elements/conversation";
 import { AlertCircle, X, RotateCcw, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NexusMark from "@/components/NexusMark";
 
 interface ConversationThreadProps {
   messages: Msg[];
@@ -31,11 +32,11 @@ interface ConversationThreadProps {
 
 const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
   <motion.div
-    className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center shrink-0 mt-1 shadow-sm"
+    className="w-7 h-7 flex items-center justify-center shrink-0 mt-1"
     animate={pulse ? { scale: [1, 1.12, 1] } : {}}
     transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
   >
-    <span className="font-serif text-[11px] leading-none text-foreground/70">N</span>
+    <NexusMark className="h-5 w-5" />
   </motion.div>
 );
 
@@ -60,11 +61,11 @@ const ConversationThread = ({
     <section className="relative min-h-0 flex-1 flex flex-col" aria-label="Conversation with Nexus AI consultant">
       <div className="min-h-0 flex-1 flex flex-col bg-background overflow-hidden">
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-border bg-background/90 backdrop-blur-xl">
+        <header className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b border-border bg-background/95 backdrop-blur-xl">
           {onOpenHistory && <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onOpenHistory} aria-label="Open conversation history"><PanelLeft /></Button>}
           <AgentMark pulse={isLoading} />
           <div className="min-w-0">
-            <p className="text-sm font-sans font-medium text-foreground leading-tight">Nexus AI Consultant</p>
+             <p className="text-sm font-sans font-medium text-foreground leading-tight">Nexus Consultant</p>
             <p className="text-xs text-muted-foreground leading-tight">
               {isLoading ? "Responding…" : "Online"}
             </p>
@@ -95,7 +96,7 @@ const ConversationThread = ({
 
         {/* Scrollable transcript */}
         <Conversation className="flex-1 min-h-0">
-          <ConversationContent className="gap-6 px-4 sm:px-8 py-8 pb-10 max-w-3xl mx-auto w-full">
+          <ConversationContent className="gap-7 px-4 sm:px-8 py-10 pb-12 max-w-4xl mx-auto w-full">
             <AnimatePresence mode="popLayout">
               {visibleMessages.map((msg, i) => {
                 if (msg.role === "module" && msg.module) {
@@ -191,7 +192,7 @@ const ConversationThread = ({
 
             {/* Error surface */}
             {error && !isLoading && (
-              <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
                 <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                 <div className="text-sm font-sans text-foreground">
                   <p className="font-medium">Something interrupted the response.</p>
@@ -205,20 +206,20 @@ const ConversationThread = ({
 
         {/* Suggestion chips */}
         {suggestions.length > 0 && !isLoading && (
-          <div className="flex flex-wrap gap-2 px-4 sm:px-8 py-3 border-t border-border bg-secondary/35">
+          <div className="mx-auto flex w-full max-w-4xl flex-wrap gap-2 px-4 sm:px-8 py-3">
             {suggestions.map((s, i) => (
-              <motion.button
+              <Button
                 key={s}
                 initial={{ opacity: 0, y: 6, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: i * 0.06, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
                 onClick={() => onSendMessage(s)}
-                className="px-3 py-1.5 text-xs font-sans rounded-full border border-border bg-card hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm"
+                variant="outline"
+                size="sm"
+                className="h-auto px-3 py-2 text-xs font-sans text-muted-foreground"
               >
                 {s}
-              </motion.button>
+              </Button>
             ))}
           </div>
         )}

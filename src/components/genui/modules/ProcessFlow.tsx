@@ -11,7 +11,7 @@ const ProcessFlow = ({ data }: { data: ProcessFlowData }) => (
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-5 space-y-2"
+    className="space-y-3"
   >
     <h4 className="text-sm font-serif font-semibold text-foreground mb-3">{data.title}</h4>
     {data.steps.map((step, i) => (
@@ -22,7 +22,7 @@ const ProcessFlow = ({ data }: { data: ProcessFlowData }) => (
           transition={{ delay: i * 0.1 }}
           className="flex items-start gap-3"
         >
-          <div className="w-6 h-6 rounded-full bg-foreground text-primary-foreground flex items-center justify-center text-[10px] font-sans font-semibold shrink-0 mt-0.5">
+          <div className="w-6 h-6 rounded-sm bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-sans font-semibold shrink-0 mt-0.5">
             {i + 1}
           </div>
           <div>

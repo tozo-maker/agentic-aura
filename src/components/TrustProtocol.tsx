@@ -35,42 +35,42 @@ const TrustProtocol = () => {
   const current = modes[mode];
 
   return (
-    <section id="how-we-work" className="py-24 px-6 bg-primary text-primary-foreground">
-      <div className="max-w-4xl mx-auto">
+    <section id="how-we-work" className="py-20 sm:py-28 px-5 bg-secondary/35 border-b border-border">
+      <div className="max-w-6xl mx-auto">
         <motion.div
-          className="text-center mb-16"
+          className="grid gap-6 md:grid-cols-[1fr_.7fr] md:items-end mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-primary-foreground/70">
+          <div><span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-accent">
             How We Work
           </span>
-          <h2 className="text-5xl md:text-6xl font-serif font-normal mt-4 text-primary-foreground">
-            The Trust Protocol
-          </h2>
-          <p className="text-primary-foreground/75 font-sans mt-4 max-w-xl mx-auto">
-            Every critical action passes through a human verification gate. You choose the speed—we guarantee the quality.
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif font-normal mt-4 text-foreground">
+            Automation where it helps. Judgment where it matters.
+          </h2></div>
+          <p className="text-muted-foreground font-sans max-w-md md:justify-self-end text-sm leading-relaxed">
+            Choose autonomous handling for routine work or add a human approval gate before sensitive actions move forward.
           </p>
         </motion.div>
 
         {/* Toggle */}
-        <div className="flex justify-center mb-12">
-          <div className="border border-primary-foreground/25 rounded-md p-1 flex gap-1">
+        <div className="flex mb-6">
+          <div className="border border-border bg-background rounded-md p-1 flex gap-1">
             {(["ai", "hitl"] as const).map((m) => (
               <Button
                 key={m}
                 onClick={() => setMode(m)}
                 variant="ghost"
                 className={`relative px-6 py-2.5 text-sm transition-colors ${
-                  mode === m ? "text-primary" : "text-primary-foreground/70 hover:text-primary-foreground"
+                  mode === m ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {mode === m && (
                   <motion.div
                     layoutId="trust-toggle"
-                    className="absolute inset-0 bg-primary-foreground rounded-sm"
+                    className="absolute inset-0 bg-primary rounded-sm"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -84,7 +84,7 @@ const TrustProtocol = () => {
 
         {/* Flow */}
         <motion.div
-          className="border border-primary-foreground/25 bg-primary-foreground/5 rounded-md p-8 mb-12"
+          className="border border-border bg-background rounded-md p-6 sm:p-10 mb-8"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -102,16 +102,16 @@ const TrustProtocol = () => {
                 <div key={i} className="flex items-center gap-4 flex-1">
                   <div className="flex flex-col items-center text-center gap-2">
                     <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                         step.icon === ShieldCheck ? "bg-primary-foreground text-primary" : "bg-primary-foreground/10 text-primary-foreground"
+                      className={`w-11 h-11 rounded-md border flex items-center justify-center ${
+                         step.icon === ShieldCheck ? "border-accent bg-accent text-accent-foreground" : "border-border bg-secondary text-foreground"
                       }`}
                     >
                       <step.icon className="w-5 h-5" />
                     </div>
-                    <p className="text-xs font-sans text-primary-foreground/70 max-w-[120px]">{step.text}</p>
+                    <p className="text-xs font-sans text-muted-foreground max-w-[120px]">{step.text}</p>
                   </div>
                   {i < current.steps.length - 1 && (
-                     <div className="hidden md:block w-8 h-px bg-primary-foreground/25" />
+                     <div className="hidden md:block w-8 h-px bg-border" />
                   )}
                 </div>
               ))}
@@ -124,14 +124,14 @@ const TrustProtocol = () => {
           {badges.map((badge, i) => (
             <motion.div
               key={badge.label}
-              className="border border-primary-foreground/25 rounded-md px-4 py-2 flex items-center gap-2"
+              className="border border-border bg-background rounded-md px-4 py-2 flex items-center gap-2"
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1, duration: 0.5 }}
             >
-              <badge.icon className="w-4 h-4 text-primary-foreground/70" />
-              <span className="text-sm font-sans font-medium text-primary-foreground">{badge.label}</span>
+              <badge.icon className="w-4 h-4 text-primary" />
+              <span className="text-sm font-sans font-medium text-foreground">{badge.label}</span>
             </motion.div>
           ))}
         </div>

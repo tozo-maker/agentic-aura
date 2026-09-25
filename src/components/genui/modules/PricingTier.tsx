@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PricingTierData {
   title: string;
@@ -17,14 +18,14 @@ const PricingTier = ({ data, onAction }: { data: PricingTierData; onAction?: (ms
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-4 space-y-3"
+    className="space-y-4"
   >
     <h4 className="text-sm font-serif font-semibold text-foreground">{data.title}</h4>
     <div className="grid grid-cols-1 gap-2">
       {data.tiers.map((tier, i) => (
         <div
           key={i}
-          className={`rounded-xl p-3 border ${
+          className={`rounded-md p-4 border ${
             tier.recommended
               ? "bg-foreground text-primary-foreground border-foreground"
               : "bg-secondary border-border"
@@ -51,12 +52,14 @@ const PricingTier = ({ data, onAction }: { data: PricingTierData; onAction?: (ms
             ))}
           </ul>
           {tier.recommended && (
-            <button
+            <Button
               onClick={() => onAction?.(`Tell me more about the ${tier.name} plan`)}
-              className="w-full mt-2 text-[10px] font-sans font-medium bg-primary-foreground text-foreground py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+              variant="secondary"
+              size="sm"
+              className="w-full mt-3 text-xs"
             >
               Learn more
-            </button>
+            </Button>
           )}
         </div>
       ))}

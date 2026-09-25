@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { MessageSquare, Plus, Trash2, Home } from "lucide-react";
+import NexusMark from "@/components/NexusMark";
 import { Link } from "react-router-dom";
 import type { Thread } from "@/hooks/useAIChat";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,14 @@ interface ThreadSidebarProps {
 }
 
 const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete, className }: ThreadSidebarProps) => (
-  <aside className={cn("flex flex-col w-full md:w-72 shrink-0 border border-border bg-background shadow-[var(--shadow-glass)] overflow-hidden", className)}>
-    <div className="p-3 border-b border-border flex items-center gap-2">
+  <aside className={cn("flex flex-col w-full md:w-72 shrink-0 border-r border-border bg-secondary/25 overflow-hidden", className)}>
+    <div className="p-4 border-b border-border flex items-center gap-2">
       <Link
         to="/"
-        className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
         aria-label="Back to site"
       >
-        <Home className="w-4 h-4" />
+        <NexusMark className="h-5 w-5" /><Home className="sr-only" />
       </Link>
       <Button
         onClick={onNew}
@@ -45,22 +46,25 @@ const ThreadSidebar = ({ threads, activeId, onSelect, onNew, onDelete, className
             t.id === activeId ? "bg-secondary" : "hover:bg-secondary/60"
           }`}
         >
-          <button
+          <Button
             onClick={() => onSelect(t.id)}
-            className="flex-1 flex items-center gap-2 py-2 text-left min-w-0"
+            variant="ghost"
+            className="h-auto flex-1 justify-start gap-2 px-0 py-2 text-left min-w-0 hover:bg-transparent"
           >
             <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="text-xs font-sans text-foreground truncate">
               {t.title || "New conversation"}
             </span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => onDelete(t.id)}
             aria-label="Delete conversation"
-            className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive transition-all"
+            variant="ghost"
+            size="icon-sm"
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         </motion.div>
       ))}
     </nav>
