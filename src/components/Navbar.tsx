@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import NexusMark from "@/components/NexusMark";
 
 const navLinks = [
   { label: "Services", href: "#services" },
@@ -33,7 +34,7 @@ const Navbar = () => {
   return (
     <>
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
+        className="fixed top-0 left-0 right-0 z-50 px-5 py-4"
         style={{
           backgroundColor: bgColor,
           backdropFilter: blurFilter,
@@ -41,8 +42,8 @@ const Navbar = () => {
         }}
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <a href="#" className="flex items-center gap-3 text-xl font-serif text-foreground">
-            <span className="w-2.5 h-2.5 bg-primary" aria-hidden="true" /> Nexus AI
+          <a href="#" className="flex items-center gap-3 text-lg font-sans font-semibold text-foreground">
+            <NexusMark className="h-6 w-6" /> Nexus AI
           </a>
 
           <div className="hidden md:flex items-center gap-8">
@@ -94,13 +95,14 @@ const Navbar = () => {
         >
           <div className="flex flex-col gap-4">
             {navLinks.map((link) => (
-              <button
+              <Button
                 key={link.href}
                 onClick={() => scrollTo(link.href)}
-                className="text-left text-base font-sans text-foreground py-2"
+                variant="ghost"
+                className="justify-start text-left text-base font-sans text-foreground py-2"
               >
                 {link.label}
-              </button>
+              </Button>
             ))}
           </div>
         </motion.div>

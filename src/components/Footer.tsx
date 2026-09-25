@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import RevealOnScroll from "./RevealOnScroll";
+import { Button } from "@/components/ui/button";
+import NexusMark from "@/components/NexusMark";
 
 const serviceLinks = [
   { label: "Agentic Commerce", href: "#services" },
@@ -32,7 +34,7 @@ const Footer = ({ onScheduleCall }: FooterProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             {/* Brand */}
             <div>
-              <h3 className="text-xl font-serif font-semibold text-foreground mb-3">Nexus AI</h3>
+              <div className="mb-4 flex items-center gap-3"><NexusMark className="h-6 w-6" /><h3 className="text-base font-sans font-semibold text-foreground">Nexus AI</h3></div>
               <p className="text-sm font-sans text-muted-foreground leading-relaxed mb-6">
                 Hybrid intelligence systems that think, adapt, and act—with a human always in the loop.
               </p>
@@ -44,12 +46,13 @@ const Footer = ({ onScheduleCall }: FooterProps) => {
               <ul className="space-y-2.5">
                 {serviceLinks.map((link) => (
                   <li key={link.label}>
-                    <button
+                    <Button
                       onClick={() => scrollTo(link.href)}
-                      className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors"
+                      variant="link"
+                      className="h-auto p-0 text-sm font-sans text-muted-foreground hover:text-foreground"
                     >
                       {link.label}
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -70,12 +73,12 @@ const Footer = ({ onScheduleCall }: FooterProps) => {
                   </li>
                 ))}
               </ul>
-              <button
+              <Button
                 onClick={onScheduleCall}
-                className="mt-6 text-sm font-sans font-medium bg-foreground text-primary-foreground rounded-full px-5 py-2 hover:opacity-90 transition-opacity"
+                className="mt-6"
               >
                 Schedule a Call
-              </button>
+              </Button>
             </div>
           </div>
         </RevealOnScroll>
