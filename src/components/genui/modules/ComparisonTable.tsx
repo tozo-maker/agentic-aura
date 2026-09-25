@@ -12,7 +12,7 @@ const ComparisonTable = ({ data }: { data: ComparisonTableData }) => (
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-4 overflow-x-auto"
+    className="overflow-x-auto"
   >
     <h4 className="text-sm font-serif font-semibold text-foreground mb-3">{data.title}</h4>
     <table className="w-full text-xs font-sans">
@@ -24,7 +24,7 @@ const ComparisonTable = ({ data }: { data: ComparisonTableData }) => (
               <div className="flex flex-col items-center gap-0.5">
                 {col.name}
                 {col.recommended && (
-                  <span className="text-[9px] bg-foreground text-primary-foreground px-1.5 py-0.5 rounded-full">Best</span>
+                  <span className="text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-sm">Best</span>
                 )}
               </div>
             </th>
@@ -33,7 +33,7 @@ const ComparisonTable = ({ data }: { data: ComparisonTableData }) => (
       </thead>
       <tbody>
         {data.rows.map((row, i) => (
-          <tr key={i} className="border-b border-border/50 last:border-0">
+          <tr key={i} className="border-b border-border last:border-0">
             <td className="py-2 pr-3 text-muted-foreground">{row.feature}</td>
             {row.values.map((val, j) => (
               <td key={j} className="py-2 px-2 text-center">

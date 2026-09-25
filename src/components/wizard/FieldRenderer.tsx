@@ -1,4 +1,5 @@
 import type { WizardField } from "./wizardSchemas";
+import { Button } from "@/components/ui/button";
 
 interface FieldRendererProps {
   field: WizardField;
@@ -7,7 +8,7 @@ interface FieldRendererProps {
 }
 
 const FieldRenderer = ({ field, value, onChange }: FieldRendererProps) => {
-  const base = "w-full rounded-lg bg-secondary/60 border border-border px-3 py-2 text-sm font-sans text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring transition-colors";
+  const base = "w-full rounded-md bg-background border border-input px-3 py-2 text-sm font-sans text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring transition-colors";
 
   switch (field.type) {
     case "text":
@@ -58,18 +59,20 @@ const FieldRenderer = ({ field, value, onChange }: FieldRendererProps) => {
           <label className="text-xs font-sans font-medium text-muted-foreground">{field.label}</label>
           <div className="flex flex-wrap gap-2">
             {field.options?.map((o) => (
-              <button
+              <Button
                 key={o.value}
                 type="button"
                 onClick={() => onChange(o.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-sans border transition-all ${
+                variant="outline"
+                size="sm"
+                className={`text-xs ${
                   value === o.value
                     ? "bg-foreground text-primary-foreground border-foreground"
                     : "bg-secondary/60 text-foreground border-border hover:border-muted-foreground"
                 }`}
               >
                 {o.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

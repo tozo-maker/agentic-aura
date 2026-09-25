@@ -15,15 +15,15 @@ const CaseStudyCard = ({ data }: { data: CaseStudyData }) => (
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-    className="glass rounded-2xl p-5 space-y-3"
+    className="space-y-4"
   >
     <div className="flex items-center gap-2">
       <Award className="w-4 h-4 text-foreground" />
       <h4 className="text-sm font-serif font-semibold text-foreground">{data.title}</h4>
     </div>
     <div className="flex gap-2">
-      <span className="text-[10px] font-sans bg-secondary text-foreground px-2 py-0.5 rounded-full">{data.client}</span>
-      <span className="text-[10px] font-sans bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">{data.industry}</span>
+      <span className="text-[10px] font-sans border border-border text-foreground px-2 py-1 rounded-sm">{data.client}</span>
+      <span className="text-[10px] font-sans border border-border text-muted-foreground px-2 py-1 rounded-sm">{data.industry}</span>
     </div>
     <div className="space-y-1.5 text-xs font-sans">
       <p className="text-muted-foreground"><span className="font-medium text-foreground">Challenge:</span> {data.challenge}</p>

@@ -30,7 +30,7 @@ const GenUIRenderer = ({ deployment, onAction }: GenUIRendererProps) => {
   if (!Component) return null;
 
   return (
-    <Suspense fallback={<div className="glass rounded-2xl p-4 animate-pulse h-24" />}>
+    <Suspense fallback={<div className="h-24 animate-pulse rounded-md bg-secondary" />}>
       <Component data={deployment.data} onAction={onAction} />
     </Suspense>
   );

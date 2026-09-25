@@ -26,7 +26,7 @@ const ROICalculator = ({ data }: { data: ROICalculatorData }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="glass rounded-2xl p-5 space-y-4"
+      className="space-y-5"
     >
       <div className="flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-foreground" />
@@ -49,15 +49,15 @@ const ROICalculator = ({ data }: { data: ROICalculatorData }) => {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-secondary rounded-xl p-3 text-center">
+        <div className="bg-secondary rounded-md p-3 text-center">
           <p className="text-[10px] font-sans text-muted-foreground uppercase tracking-wide">Current</p>
           <p className="text-sm font-sans font-semibold text-foreground mt-1">{currency}{currentCost.toLocaleString()}</p>
         </div>
-        <div className="bg-secondary rounded-xl p-3 text-center">
+        <div className="bg-secondary rounded-md p-3 text-center">
           <p className="text-[10px] font-sans text-muted-foreground uppercase tracking-wide">Automated</p>
           <p className="text-sm font-sans font-semibold text-foreground mt-1">{currency}{newCost.toLocaleString()}</p>
         </div>
-        <div className="bg-foreground rounded-xl p-3 text-center">
+        <div className="bg-primary rounded-md p-3 text-center">
           <p className="text-[10px] font-sans text-primary-foreground uppercase tracking-wide">Savings</p>
           <p className="text-sm font-sans font-semibold text-primary-foreground mt-1">{pct}%</p>
         </div>
