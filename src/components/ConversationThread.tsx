@@ -210,9 +210,6 @@ const ConversationThread = ({
             {suggestions.map((s, i) => (
               <Button
                 key={s}
-                initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: i * 0.06, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => onSendMessage(s)}
                 variant="outline"
                 size="sm"

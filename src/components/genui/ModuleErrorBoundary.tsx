@@ -19,7 +19,7 @@ class ModuleErrorBoundary extends React.Component<React.PropsWithChildren, State
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center gap-3 py-4 px-5 rounded-xl bg-destructive/5 border border-destructive/20">
+        <div className="flex items-center gap-3 py-4 px-5 rounded-md bg-destructive/5 border border-destructive/20">
           <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
           <div>
             <p className="text-sm font-sans font-medium text-foreground">Module failed to load</p>
