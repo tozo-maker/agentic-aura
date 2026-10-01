@@ -12,7 +12,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="relative min-h-[min(860px,92vh)] border-b border-border pt-28 pb-14 overflow-hidden">
+    <section className="relative min-h-[min(780px,92vh)] border-b border-border pt-24 pb-8 sm:pt-28 sm:pb-14 overflow-hidden">
       <div className="absolute inset-0 nexus-grid opacity-40" aria-hidden="true" />
       <div className="relative max-w-5xl mx-auto px-5 sm:px-8">
         <div className="mx-auto max-w-3xl text-center">
@@ -28,7 +28,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
         </motion.div>
 
         <motion.h1
-              className="text-6xl sm:text-7xl md:text-8xl font-serif font-normal leading-[0.9] text-foreground mb-7"
+              className="text-5xl sm:text-7xl md:text-8xl font-serif font-normal leading-[0.9] text-foreground mb-6 sm:mb-7"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
@@ -47,7 +47,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
         </div>
 
         <motion.div
-          className="mx-auto mt-10 max-w-3xl"
+          className="mx-auto mt-8 max-w-3xl sm:mt-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.7 }}
@@ -59,7 +59,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
           <AmbientInputBar onSubmit={onSubmit} isLoading={isLoading} variant="hero" />
         </motion.div>
 
-        <a href="#services" className="mx-auto mt-10 flex w-fit items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground">
+        <a href="#services" className="mx-auto mt-7 flex w-fit items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground sm:mt-10">
           Explore how Nexus works
           <ArrowDown className={`h-3.5 w-3.5 ${reduceMotion ? "" : "animate-bounce"}`} />
         </a>

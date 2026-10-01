@@ -113,7 +113,7 @@ const AmbientInputBar = ({ onSubmit, isLoading = false, minimal = false, onStop,
               placeholder={isLoading ? "Nexus is thinking…" : "What are you looking to build?"}
               aria-label="Message the Nexus AI consultant"
               disabled={isLoading}
-              className={`${variant === "hero" ? "min-h-24 px-5 pt-5 text-base sm:text-lg" : "min-h-16 px-4 pt-4 text-base"}`}
+              className={`${variant === "hero" ? "min-h-20 px-5 pt-4 text-base sm:min-h-24 sm:pt-5 sm:text-lg" : "min-h-16 px-4 pt-4 text-base"}`}
             />
             <PromptInputFooter className="px-3 pb-3">
               <PromptInputTools>
