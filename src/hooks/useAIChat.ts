@@ -121,16 +121,16 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
     }
     if (historyLoaded.current === threadId) return;
     historyLoaded.current = threadId;
+    // Reset synchronously so a message sent right after a thread switch is never
+    // wiped by the async history response for an empty thread.
+    setMessages(createInitialMessages());
 
     fetch(`${CHAT_URL}?history=true&threadId=${encodeURIComponent(threadId)}`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
     })
       .then((r) => r.json())
       .then(({ messages: history }: { messages?: Array<{ role: string; content: string }> }) => {
-        if (!history?.length) {
-          setMessages(createInitialMessages());
-          return;
-        }
+        if (!history?.length) return;
         const restored: UIMessage[] = history.map((row, i) => {
           if (row.role === "assistant") {
             let parts: AnyPart[];
