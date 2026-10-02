@@ -26,8 +26,8 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
   const label = moduleLabels[mod.type] || mod.type;
 
   return (
-    <div className="rounded-md border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-secondary/30">
+    <div className="surface-panel overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/70 bg-gradient-to-b from-secondary/40 to-transparent">
         <div className="flex items-center gap-2">
           <motion.span
             className="w-2 h-2 bg-primary"

@@ -28,6 +28,7 @@ interface ConversationThreadProps {
   onClose?: () => void;
   onReset?: () => void;
   onOpenHistory?: () => void;
+  embedded?: boolean;
 }
 
 const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
@@ -54,14 +55,15 @@ const ConversationThread = ({
   onClose,
   onReset,
   onOpenHistory,
+  embedded = false,
 }: ConversationThreadProps) => {
   const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
 
   return (
     <section className="relative min-h-0 flex-1 flex flex-col" aria-label="Conversation with Nexus AI consultant">
-      <div className="min-h-0 flex-1 flex flex-col bg-background overflow-hidden">
+      <div className={`min-h-0 flex-1 flex flex-col overflow-hidden ${embedded ? "" : "bg-background"}`}>
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b border-border bg-background/95 backdrop-blur-xl">
+        {!embedded && <header className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b border-border bg-background/95 backdrop-blur-xl">
           {onOpenHistory && <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={onOpenHistory} aria-label="Open conversation history"><PanelLeft /></Button>}
           <AgentMark pulse={isLoading} />
           <div className="min-w-0">
@@ -92,7 +94,7 @@ const ConversationThread = ({
               </Button>
             )}
           </div>
-        </header>
+        </header>}
 
         {/* Scrollable transcript */}
         <Conversation className="flex-1 min-h-0">
