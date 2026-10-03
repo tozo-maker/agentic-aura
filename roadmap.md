@@ -1,8 +1,9 @@
-# Redesign roadmap
+# Full visual & canvas overhaul
 
-- [x] Establish the shared Nexus visual system and identity
-- [x] Integrate the consultant into the homepage hero
-- [x] Consolidate homepage sections and add interactive capability proof
-- [x] Unify the chat shell and history navigation
-- [x] Normalize generated interfaces and wizard styling
-- [x] Verify desktop, mobile, dark mode, and interaction states
+- [ ] Fix duplicate message on conversation start
+- [ ] Unified hero command cockpit (prompt + live runner in one chassis)
+- [ ] Two-column consultation workspace (conversation + blueprint canvas), single header
+- [ ] Live system emulators in "What Nexus builds"
+- [ ] Trust protocol as side-by-side policy simulator
+- [ ] Material polish (bevels, softer dark), branded sign-in page
+- [ ] Verify desktop/mobile, light/dark, chat flow
