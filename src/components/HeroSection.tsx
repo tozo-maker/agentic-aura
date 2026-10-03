@@ -138,7 +138,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.08 }}
-            className="text-5xl font-semibold leading-[0.95] text-foreground sm:text-6xl lg:text-7xl"
+            className="text-5xl font-semibold leading-[0.95] text-foreground sm:text-6xl lg:text-[4.25rem]"
           >
             AI systems that act.<br />
             <span className="text-muted-foreground">People stay in charge.</span>
