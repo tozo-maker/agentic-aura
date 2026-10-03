@@ -113,6 +113,9 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
 
   // ---- Load previous conversation for active thread -----------------------------
   const historyLoaded = useRef<string | null>(null);
+  // Counts local sends; a history response that arrives after a local send is stale
+  // (the server already holds that message) and must not be merged in.
+  const localSends = useRef(0);
   useEffect(() => {
     if (!threadId) {
       setMessages(createInitialMessages());
@@ -124,6 +127,7 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
     // Reset synchronously so a message sent right after a thread switch is never
     // wiped by the async history response for an empty thread.
     setMessages(createInitialMessages());
+    const sendsAtStart = localSends.current;
 
     fetch(`${CHAT_URL}?history=true&threadId=${encodeURIComponent(threadId)}`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
@@ -131,6 +135,7 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
       .then((r) => r.json())
       .then(({ messages: history }: { messages?: Array<{ role: string; content: string }> }) => {
         if (!history?.length) return;
+        if (localSends.current !== sendsAtStart || historyLoaded.current !== threadId) return;
         const restored: UIMessage[] = history.map((row, i) => {
           if (row.role === "assistant") {
             let parts: AnyPart[];
@@ -165,7 +170,9 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
       const text = parts.filter((p) => p.type === "text").map((p) => p.text ?? "").join("");
 
       if (m.role === "user") {
-        if (text.trim()) msgs.push({ role: "user", content: text });
+        const last = msgs[msgs.length - 1];
+        const duplicate = last?.role === "user" && last.content === text;
+        if (text.trim() && !duplicate) msgs.push({ role: "user", content: text });
         continue;
       }
 
@@ -233,6 +240,7 @@ export function useAIChat(threadId: string | undefined, onActiveService?: (servi
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isLoading) return;
+      localSends.current += 1;
       setExpiredNotice([]);
       storeSession(sessionId);
       setInput("");
