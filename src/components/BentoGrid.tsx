@@ -77,14 +77,14 @@ const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOp
           transition={{ duration: 0.7 }}
         >
           <div>
-            <span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-primary">What Nexus builds</span>
+            <span className="text-xs font-sans font-semibold tracking-[0.16em] uppercase text-accent font-mono">What Nexus builds</span>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif font-normal mt-4 text-foreground">From a bottleneck to a working system.</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground md:max-w-sm md:justify-self-end">Explore how each system moves from context to action while preserving a clear human decision point.</p>
         </motion.div>
 
-        <div className="grid border border-border lg:grid-cols-[0.82fr_1.18fr]">
-          <div className="divide-y divide-border border-b border-border lg:border-b-0 lg:border-r">
+        <div className="chassis grid overflow-hidden p-2 gap-2 lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="space-y-1.5">
           {services.map((service, i) => {
             const isActive = service.id === selectedId;
             return (
@@ -97,16 +97,16 @@ const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOp
                 viewport={{ once: true }}
                 onClick={() => setSelectedId(service.id)}
                 className={`w-full p-5 text-left group transition-colors ${
-                  isActive ? "bg-secondary" : "bg-background hover:bg-secondary/45"
+                  isActive ? "inset-well" : "rounded-[var(--radius)] hover:bg-background/60"
                 }`}
                 aria-pressed={isActive}
               >
                 <div className="flex items-center gap-4">
-                <div className={`w-9 h-9 border flex items-center justify-center transition-colors ${isActive ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground"}`}>
+                <div className={`w-9 h-9 border flex items-center justify-center transition-colors ${isActive ? "rounded-md border-accent bg-accent text-accent-foreground" : "rounded-md border-border text-muted-foreground"}`}>
                   <service.icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">0{i + 1}</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">SYS.0{i + 1}</p>
                   <h3 className="text-base font-sans font-medium text-foreground">{service.title}</h3>
                 </div>
                 <ArrowRight className={`h-4 w-4 transition-transform ${isActive ? "translate-x-0 text-primary" : "-translate-x-1 text-muted-foreground"}`} />
@@ -116,8 +116,8 @@ const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ activeService, onOp
           })}
           </div>
 
-          <motion.div key={selected.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="bg-card p-6 sm:p-9 lg:p-12">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-primary"><selected.icon className="h-4 w-4" /> Working model</div>
+          <motion.div key={selected.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="inset-well p-6 sm:p-9 lg:p-12">
+            <div className="flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.14em] text-accent"><selected.icon className="h-4 w-4" /> Working model</div>
             <h3 className="mt-5 text-3xl sm:text-4xl font-serif text-foreground">{selected.title}</h3>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">{selected.description}</p>
             <div className="mt-8 divide-y divide-border border-y border-border">
