@@ -16,7 +16,7 @@ interface SessionDockProps {
 const SessionDock = ({ title, isLoading, overviewOpen, onToggleOverview, onOpenHistory, onNew, onEnd }: SessionDockProps) => (
   <motion.div
     layoutId="nexus-stage-head"
-    className="glass-dock sticky top-[64px] z-40"
+    className="glass-dock sticky top-0 z-40"
     transition={{ type: "spring", stiffness: 260, damping: 32 }}
   >
     <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">

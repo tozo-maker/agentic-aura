@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import BlueprintPanel from "@/components/BlueprintPanel";
 import { useParams } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp } from "lucide-react";
@@ -38,9 +39,11 @@ const PortalInner = () => {
   // Keep the address bar in sync without remounting the portal.
   const syncUrl = (id?: string) => window.history.replaceState(null, "", id ? `/chat/${id}` : "/");
 
-  // Send the message that opened the session once the thread is active.
+  // Send the message that opened the session exactly once, after the thread is active.
+  const flushed = useRef<typeof pending>(null);
   useEffect(() => {
-    if (!pending || !threadId) return;
+    if (!pending || !threadId || flushed.current === pending) return;
+    flushed.current = pending;
     if (pending.serviceId && SERVICE_MODULE_MAP[pending.serviceId]) {
       const { type, data } = SERVICE_MODULE_MAP[pending.serviceId];
       chat.preloadModule(type, data);
@@ -118,7 +121,7 @@ const PortalInner = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      {!inSession && <Navbar />}
 
       <AnimatePresence initial={false} mode="popLayout">
         {!inSession && (
@@ -136,47 +139,60 @@ const PortalInner = () => {
       </AnimatePresence>
 
       {inSession && (
-        <div className="pt-[64px]">
-          <SessionDock
-            title={sessionTitle}
-            isLoading={chat.isLoading}
-            overviewOpen={overview}
-            onToggleOverview={toggleOverview}
-            onOpenHistory={() => setHistoryOpen(true)}
-            onNew={newSession}
-            onEnd={endSession}
-          />
-        </div>
+        <SessionDock
+          title={sessionTitle}
+          isLoading={chat.isLoading}
+          overviewOpen={overview}
+          onToggleOverview={toggleOverview}
+          onOpenHistory={() => setHistoryOpen(true)}
+          onNew={newSession}
+          onEnd={endSession}
+        />
       )}
 
       <AnimatePresence initial={false}>
         {canvasVisible && (
           <motion.section
             key="canvas"
-            aria-label="Consultation canvas"
+            aria-label="Consultation workspace"
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24, height: 0 }}
             transition={spring}
-            className={`ambient-field relative flex h-[calc(100dvh-64px-57px)] flex-col overflow-hidden ${chat.isLoading ? "is-thinking" : ""}`}
+            className={`ambient-field relative lg:h-[calc(100dvh-57px)] ${chat.isLoading ? "is-thinking" : ""}`}
           >
-            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-              <ConversationThread
-                messages={chat.messages}
+            <div className="relative z-10 mx-auto grid h-full max-w-[1400px] gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <div className="chassis flex h-[calc(100dvh-57px-1.5rem)] min-h-0 flex-col overflow-hidden lg:h-auto">
+                <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+                  <span className="hw-label flex items-center gap-2"><span className={`led ${chat.isLoading ? "led-pulse" : ""}`} />Conversation</span>
+                  <span className="hw-label hidden sm:inline">{chat.isLoading ? "Composing" : "Live"}</span>
+                </div>
+                <ConversationThread
+                  messages={chat.messages}
+                  isLoading={chat.isLoading}
+                  deployedModules={chat.deployedModules}
+                  onRemoveModule={chat.removeDeployedModule}
+                  onSendMessage={chat.sendMessage}
+                  wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
+                  onWizardStepSubmit={chat.handleWizardStepSubmit}
+                  onWizardComplete={chat.handleWizardComplete}
+                  suggestions={chat.suggestions}
+                  error={chat.error as Error | null}
+                  embedded
+                  hideModules
+                />
+                <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                  <AmbientInputBar onSubmit={(m) => chat.sendMessage(m)} isLoading={chat.isLoading} onStop={chat.stop} variant="chat" />
+                </div>
+              </div>
+              <BlueprintPanel
+                title={sessionTitle}
+                modules={chat.deployedModules}
                 isLoading={chat.isLoading}
-                deployedModules={chat.deployedModules}
+                turns={chat.messages.filter((m) => m.role === "user").length}
                 onRemoveModule={chat.removeDeployedModule}
                 onSendMessage={chat.sendMessage}
-                wizard={{ schema: chat.wizard.schema, completed: chat.wizard.completed }}
-                onWizardStepSubmit={chat.handleWizardStepSubmit}
-                onWizardComplete={chat.handleWizardComplete}
-                suggestions={chat.suggestions}
-                error={chat.error as Error | null}
-                embedded
               />
-              <div className="mx-auto w-full max-w-4xl px-4 pb-4 sm:px-8 sm:pb-6">
-                <AmbientInputBar onSubmit={(m) => chat.sendMessage(m)} isLoading={chat.isLoading} onStop={chat.stop} variant="chat" />
-              </div>
             </div>
           </motion.section>
         )}
