@@ -29,6 +29,8 @@ interface ConversationThreadProps {
   onReset?: () => void;
   onOpenHistory?: () => void;
   embedded?: boolean;
+  /** Render generated modules elsewhere (e.g. a side canvas) instead of inline. */
+  hideModules?: boolean;
 }
 
 const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
@@ -44,7 +46,7 @@ const AgentMark = ({ pulse = false }: { pulse?: boolean }) => (
 const ConversationThread = ({
   messages,
   isLoading,
-  deployedModules,
+  deployedModules: allModules,
   onRemoveModule,
   onSendMessage,
   wizard,
@@ -56,8 +58,10 @@ const ConversationThread = ({
   onReset,
   onOpenHistory,
   embedded = false,
+  hideModules = false,
 }: ConversationThreadProps) => {
-  const visibleMessages = messages.filter((m) => !m.hidden || m.role === "module");
+  const deployedModules = hideModules ? [] : allModules;
+  const visibleMessages = messages.filter((m) => (hideModules ? m.role !== "module" && !m.hidden : !m.hidden || m.role === "module"));
 
   return (
     <section className="relative min-h-0 flex-1 flex flex-col" aria-label="Conversation with Nexus AI consultant">
@@ -98,7 +102,7 @@ const ConversationThread = ({
 
         {/* Scrollable transcript */}
         <Conversation className="flex-1 min-h-0">
-          <ConversationContent className="gap-7 px-4 sm:px-8 py-10 pb-12 max-w-4xl mx-auto w-full">
+          <ConversationContent className={`gap-7 mx-auto w-full ${embedded ? "px-4 sm:px-6 py-6 pb-8" : "px-4 sm:px-8 py-10 pb-12 max-w-4xl"}`}>
             <AnimatePresence mode="popLayout">
               {visibleMessages.map((msg, i) => {
                 if (msg.role === "module" && msg.module) {
