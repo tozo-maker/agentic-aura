@@ -5,7 +5,6 @@ import {
   createLovableAiGatewayProvider,
   getLovableAiGatewayResponseHeaders,
   getLovableAiGatewayRunId,
-  withLovableAiGatewayRunIdHeader,
 } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
@@ -294,7 +293,9 @@ Deno.serve(async (req) => {
       }),
     });
 
-    return await withLovableAiGatewayRunIdHeader(response, gateway, corsHeaders);
+    // Return immediately: never block the response on the gateway run id, which is
+    // only published once the upstream fetch happens (and never if it fails early).
+    return response;
   } catch (e) {
     console.error("chat error:", e);
     const message = e instanceof Error ? e.message : "Unknown error";
