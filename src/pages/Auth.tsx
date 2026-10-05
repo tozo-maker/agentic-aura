@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import NexusMark from "@/components/NexusMark";
 
 function safeNext(raw: string | null): string {
   if (!raw) return "/";
@@ -74,10 +75,16 @@ export default function Auth() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-background">
-      <div className="w-full max-w-md space-y-6 p-8 rounded-2xl border border-border bg-card">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">
+    <main className="relative min-h-screen flex items-center justify-center px-4 bg-background overflow-hidden">
+      <div className="absolute inset-0 glow-pool" aria-hidden="true" />
+      <div className="absolute inset-0 dot-field" aria-hidden="true" />
+      <div className="chassis relative w-full max-w-md space-y-6 p-8">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <span className="hw-label flex items-center gap-2"><NexusMark className="h-3.5 w-3.5" /> Nexus console</span>
+          <span className="hw-label flex items-center gap-2"><span className="led" /> Secure</span>
+        </div>
+        <div>
+          <h1 className="text-3xl font-semibold">
             {mode === "signin" ? "Sign in" : "Create account"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
