@@ -131,7 +131,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
       <div className="absolute inset-0 glow-pool" aria-hidden="true" />
       <div className="absolute inset-0 dot-field" aria-hidden="true" />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] lg:items-end">
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_0.6fr] lg:items-end">
           <div>
             <motion.div
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
@@ -141,7 +141,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.08 }}
-              className="text-5xl font-semibold leading-[0.95] text-foreground sm:text-6xl lg:text-[4.5rem]"
+              className="text-5xl font-semibold leading-[0.95] text-foreground sm:text-6xl lg:text-[4.25rem]"
             >
               AI systems that act.<br />
               <span className="text-muted-foreground">People stay in charge.</span>
