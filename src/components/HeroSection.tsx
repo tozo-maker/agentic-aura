@@ -23,7 +23,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
   return (
     <section id="consultation" className="editorial-hero relative isolate overflow-hidden border-b border-border">
       <img src={sculpture} alt="" width={1920} height={1280} className="editorial-hero-image absolute inset-0 -z-10 h-full w-full object-cover" fetchPriority="high" />
-      <div className="relative mx-auto max-w-6xl px-5 pb-12 pt-28 sm:px-8 sm:pb-16 sm:pt-36">
+      <div className="relative mx-auto max-w-6xl px-5 pb-8 pt-24 sm:px-8 sm:pb-16 sm:pt-36">
         <motion.div initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-[620px]">
           <p className="mb-7 text-sm font-medium text-hero-muted">Independent AI design & engineering</p>
           <h1 className="text-5xl font-semibold leading-[1.02] text-hero-foreground sm:text-6xl lg:text-[72px]">Nexus AI<span className="text-accent">.</span></h1>
@@ -42,7 +42,7 @@ const HeroSection = ({ onSubmit, isLoading = false }: HeroSectionProps) => {
             <Button type="button" variant="link" className="mt-4 h-auto whitespace-normal p-0 text-sm text-hero-foreground" onClick={() => { setValue("Help me identify where AI could genuinely help our business."); inputRef.current?.focus(); }}>Not sure where to start? <ArrowRight /></Button>
           </form>
         </motion.div>
-        <div className="mt-10 flex items-center justify-between border-t border-hero-border pt-5 text-xs text-hero-muted sm:mt-14">
+        <div className="mt-8 flex items-center justify-between border-t border-hero-border pt-5 text-xs text-hero-muted sm:mt-14">
           <span>Commerce · Operations · Customer experience</span>
           <a href="#services" className="hidden items-center gap-2 text-hero-foreground sm:flex">Our approach <ArrowRight className="h-3.5 w-3.5" /></a>
         </div>

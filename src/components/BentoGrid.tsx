@@ -9,7 +9,7 @@ const areas = [
 ];
 interface BentoGridProps { activeService?: string | null; onOpenChat?: (intent: string, serviceId?: string) => void; }
 const BentoGrid = forwardRef<HTMLElement, BentoGridProps>(({ onOpenChat }, ref) => (
-  <section ref={ref} id="services" className="scroll-mt-20 border-b border-border px-5 py-16 sm:px-8 sm:py-24">
+  <section ref={ref} id="services" className="scroll-mt-20 border-b border-border px-5 py-12 sm:px-8 sm:py-24">
     <div className="mx-auto max-w-6xl">
       <div className="grid gap-7 md:grid-cols-[.7fr_1.3fr]">
         <p className="text-sm font-medium text-muted-foreground">The work worth doing</p>
