@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { X, MessageCircle } from "lucide-react";
 import GenUIRenderer from "@/components/genui/GenUIRenderer";
 import ModuleErrorBoundary from "@/components/genui/ModuleErrorBoundary";
@@ -27,14 +26,9 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
 
   return (
     <div className="surface-panel overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border/70 bg-gradient-to-b from-secondary/40 to-transparent">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/70">
         <div className="flex items-center gap-2">
-          <motion.span
-            className="w-2 h-2 bg-primary"
-            animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <span className="text-xs font-sans font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-sans font-medium text-muted-foreground">
             {label}
           </span>
         </div>
@@ -43,7 +37,7 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
             <Button
               onClick={() => onSendMessage(`Tell me more about this ${label}`)}
               variant="ghost" size="icon-sm"
-              aria-label={`Ask about ${label}`}
+              aria-label={`Ask about ${label}`} title={`Ask about ${label}`}
             >
               <MessageCircle className="w-3.5 h-3.5" />
             </Button>
@@ -51,7 +45,7 @@ const InlineModuleCard = ({ mod, onRemove, onSendMessage, showChat = true }: Inl
           <Button
             onClick={onRemove}
             variant="ghost" size="icon-sm"
-            aria-label={`Close ${label}`}
+            aria-label={`Close ${label}`} title={`Close ${label}`}
           >
             <X className="w-3.5 h-3.5" />
           </Button>

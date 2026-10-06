@@ -106,7 +106,8 @@ const ConversationThread = ({
             <AnimatePresence mode="popLayout">
               {visibleMessages.map((msg, i) => {
                 if (msg.role === "module" && msg.module) {
-                  const deployedIdx = deployedModules.findIndex((d) => d.type === msg.module!.type);
+                  const moduleType = msg.module.type;
+                  const deployedIdx = deployedModules.findIndex((d) => d.type === moduleType);
                   if (deployedIdx === -1) return null;
                   const mod = deployedModules[deployedIdx];
 
@@ -219,7 +220,7 @@ const ConversationThread = ({
                 onClick={() => onSendMessage(s)}
                 variant="outline"
                 size="sm"
-                className="h-auto px-3 py-2 text-xs font-sans text-muted-foreground"
+                className="h-auto max-w-full whitespace-normal px-3 py-2 text-left text-xs font-sans text-muted-foreground"
               >
                 {s}
               </Button>

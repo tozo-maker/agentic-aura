@@ -1,29 +1,22 @@
 import { useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import NexusMark from "@/components/NexusMark";
 
 const navLinks = [
-  { label: "Services", href: "#services" },
-  { label: "How We Work", href: "#how-we-work" },
-  { label: "Results", href: "#results" },
+  { label: "Our work", href: "#services" },
+  { label: "Our approach", href: "#how-we-work" },
+  { label: "Let’s talk", href: "#consultation" },
 ];
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { scrollY } = useScroll();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  const bgOpacity = useTransform(scrollY, [0, 100], [0, 1]);
-  const borderOpacity = useTransform(scrollY, [0, 100], [0, 0.15]);
-  const bgColor = useTransform(bgOpacity, (v) => `hsl(var(--background) / ${v * 0.85})`);
-  const blurFilter = useTransform(bgOpacity, (v) => `blur(${v * 20}px)`);
-  const borderStyle = useTransform(borderOpacity, (v) => `1px solid hsl(var(--border) / ${v})`);
 
   const scrollTo = (href: string) => {
     setMobileOpen(false);
@@ -34,12 +27,7 @@ const Navbar = () => {
   return (
     <>
       <motion.nav
-        className="fixed top-0 left-0 right-0 z-50 px-5 py-4"
-        style={{
-          backgroundColor: bgColor,
-          backdropFilter: blurFilter,
-          borderBottom: borderStyle,
-        }}
+        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 px-5 py-4 backdrop-blur-md"
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <a href="#" className="flex items-center gap-3 text-lg font-sans font-semibold text-foreground">
