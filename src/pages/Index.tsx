@@ -159,13 +159,13 @@ const PortalInner = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24, height: 0 }}
             transition={spring}
-            className={`ambient-field relative lg:h-[calc(100dvh-57px)] ${chat.isLoading ? "is-thinking" : ""}`}
+            className="relative lg:h-[calc(100dvh-57px)]"
           >
-            <div className="relative z-10 mx-auto grid h-full max-w-[1400px] gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-              <div className="chassis flex h-[calc(100dvh-57px-1.5rem)] min-h-0 flex-col overflow-hidden lg:h-auto">
+            <div className="relative z-10 mx-auto grid h-full max-w-[1400px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <div className="flex h-[calc(100dvh-57px)] min-h-0 min-w-0 flex-col overflow-hidden lg:h-auto">
                 <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-                  <span className="hw-label flex items-center gap-2"><span className={`led ${chat.isLoading ? "led-pulse" : ""}`} />Conversation</span>
-                  <span className="hw-label hidden sm:inline">{chat.isLoading ? "Composing" : "Live"}</span>
+                  <span className="text-sm font-medium">Conversation</span>
+                  <a href="#project-blueprint" className="text-xs text-muted-foreground lg:hidden">Your project ↓</a>
                 </div>
                 <ConversationThread
                   messages={chat.messages}

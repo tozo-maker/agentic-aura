@@ -1,100 +1,14 @@
 import { Link } from "react-router-dom";
-import RevealOnScroll from "./RevealOnScroll";
+import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NexusMark from "@/components/NexusMark";
-
-const serviceLinks = [
-  { label: "Agentic Commerce", href: "#services" },
-  { label: "Workflow Automation", href: "#services" },
-  { label: "Generative UI", href: "#services" },
-  { label: "Self-Healing Infra", href: "#services" },
-  { label: "AI Support", href: "#services" },
-  { label: "Data Intelligence", href: "#services" },
-];
-
-const companyLinks = [
-  { label: "Privacy Policy", to: "/privacy" },
-  { label: "Terms of Service", to: "/terms" },
-];
-
-interface FooterProps {
-  onScheduleCall?: () => void;
-}
-
-const Footer = ({ onScheduleCall }: FooterProps) => {
-  const scrollTo = (href: string) => {
-    const id = href.replace("#", "");
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  return (
-    <footer className="border-t border-border py-16 px-6 noise-overlay">
-      <div className="max-w-6xl mx-auto">
-        <RevealOnScroll>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-            {/* Brand */}
-            <div>
-              <div className="mb-4 flex items-center gap-3"><NexusMark className="h-6 w-6" /><h3 className="text-base font-sans font-semibold text-foreground">Nexus AI</h3></div>
-              <p className="text-sm font-sans text-muted-foreground leading-relaxed mb-6">
-                Hybrid intelligence systems that think, adapt, and act—with a human always in the loop.
-              </p>
-            </div>
-
-            {/* Services */}
-            <div>
-              <h4 className="text-sm font-sans font-semibold text-foreground mb-4 uppercase tracking-wider">Services</h4>
-              <ul className="space-y-2.5">
-                {serviceLinks.map((link) => (
-                  <li key={link.label}>
-                    <Button
-                      onClick={() => scrollTo(link.href)}
-                      variant="link"
-                      className="h-auto p-0 text-sm font-sans text-muted-foreground hover:text-foreground"
-                    >
-                      {link.label}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Company */}
-            <div>
-              <h4 className="text-sm font-sans font-semibold text-foreground mb-4 uppercase tracking-wider">Company</h4>
-              <ul className="space-y-2.5">
-                {companyLinks.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.to}
-                      className="text-sm font-sans text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                onClick={onScheduleCall}
-                className="mt-6"
-              >
-                Schedule a Call
-              </Button>
-            </div>
-          </div>
-        </RevealOnScroll>
-
-        {/* Bottom */}
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs font-sans text-muted-foreground">
-            © {new Date().getFullYear()} Nexus AI. All rights reserved.
-          </p>
-          <p className="text-xs font-sans text-muted-foreground">
-            Built with hybrid intelligence
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
+interface FooterProps { onScheduleCall?: () => void; }
+const Footer = ({ onScheduleCall }: FooterProps) => (
+  <footer className="border-t border-border px-5 pb-8 pt-16 sm:px-8 sm:pt-20">
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-col items-start justify-between gap-8 pb-16 sm:flex-row sm:items-end"><div><p className="mb-4 text-sm text-muted-foreground">A useful place to begin</p><h2 className="max-w-xl text-3xl leading-tight sm:text-4xl">Bring the problem.<br />We’ll think it through.</h2></div><Button variant="link" className="h-auto p-0 text-base" onClick={onScheduleCall}>Talk to a human <ArrowUpRight /></Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-6 border-t border-border pt-7"><a href="/" className="flex items-center gap-3 font-medium"><NexusMark className="h-5 w-5" />Nexus AI</a><div className="flex gap-6 text-xs text-muted-foreground"><Link to="/privacy" className="hover:text-foreground">Privacy</Link><Link to="/terms" className="hover:text-foreground">Terms</Link><span>© {new Date().getFullYear()} Nexus AI</span></div></div>
+    </div>
+  </footer>
+);
 export default Footer;

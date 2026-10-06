@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 45 20% 96%;
+    --background: 120 4% 97%;
     --foreground: 24 10% 11%;
 
     --card: 0 0% 100%;
@@ -32,7 +32,12 @@
     --input: 36 10% 84%;
     --ring: 22 92% 50%;
 
-    --radius: 0.875rem;
+    --radius: 0.5rem;
+
+    --hero-foreground: 210 12% 12%;
+    --hero-muted: 210 6% 33%;
+    --hero-surface: 0 0% 100%;
+    --hero-border: 210 5% 68%;
 
     --glass: 0 0% 100% / 0.76;
     --glass-border: 210 15% 82% / 0.72;
@@ -117,7 +122,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk Variable', sans-serif;
-    letter-spacing: -0.035em;
+    letter-spacing: 0;
     font-weight: 600;
   }
 }
@@ -133,7 +138,7 @@
 
   .font-serif, .font-display {
     font-family: 'Space Grotesk Variable', sans-serif;
-    letter-spacing: -0.035em;
+    letter-spacing: 0;
     font-weight: 600;
   }
 
@@ -363,5 +368,34 @@
 
   .status-dot {
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.16);
+  }
+}
+
+@layer utilities {
+  .text-hero-foreground { color: hsl(var(--hero-foreground)); }
+  .text-hero-muted { color: hsl(var(--hero-muted)); }
+  .text-hero-surface { color: hsl(var(--hero-surface)); }
+  .bg-hero-surface { background: hsl(var(--hero-surface)); }
+  .bg-hero-foreground { background: hsl(var(--hero-foreground)); }
+  .border-hero-border { border-color: hsl(var(--hero-border) / .45); }
+  .editorial-entry { border-radius: var(--radius); }
+  .editorial-hero { background: hsl(var(--hero-surface)); }
+  .editorial-hero-image { object-position: center; }
+  .consultant-frame, .dark .consultant-frame {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    border-radius: var(--radius);
+  }
+  .consultant-frame:focus-within { box-shadow: none; }
+  .surface-panel, .dark .surface-panel, .surface-panel:hover {
+    border-radius: var(--radius);
+    box-shadow: none;
+    background: hsl(var(--card));
+  }
+  .hw-label { font-family: 'Work Sans Variable', sans-serif; font-size: 12px; letter-spacing: 0; text-transform: none; }
+  @media (max-width: 767px) {
+    .editorial-hero-image { object-position: 25% center; opacity: .2; }
   }
 }

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import NexusMark from "@/components/NexusMark";
 
 const navLinks = [
-  { label: "Services", href: "#services" },
-  { label: "How We Work", href: "#how-we-work" },
-  { label: "Results", href: "#results" },
+  { label: "Our work", href: "#services" },
+  { label: "Our approach", href: "#how-we-work" },
+  { label: "Let’s talk", href: "#consultation" },
 ];
 
 const Navbar = () => {
